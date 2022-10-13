@@ -14,24 +14,6 @@ class MessagingService(
     private val usersDataSource: UsersDataSource
 ) : MessagesServiceGrpcKt.MessagesServiceCoroutineImplBase(coroutineContext) {
 
-    override fun newSendReceiveMessageStream(requests: Flow<SKMessages>): Flow<SKMessages> {
-        return requests.map { skMessages ->
-            skMessages.messagesList.map { skMessage ->
-                saveMessage(skMessage)
-            }
-        }.flatMapConcat {
-            val firstMessage = it.firstOrNull()
-            firstMessage?.let {
-                getMessages(sKWorkspaceChannelRequest {
-                    workspaceId = it.workspaceId
-                    channelId = it.channelId
-                })
-            } ?: run {
-                emptyFlow()
-            }
-        }
-    }
-
     override suspend fun saveMessage(request: SKMessage): SKMessage {
         return messagesDataSource
             .saveMessage(request.toDBMessage())
