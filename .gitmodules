@@ -1,6 +1,0 @@
-[submodule "protos"]
-	path = protos
-	url = https://github.com/Anmol92verma/slack_multiplatform_protos.git
-[submodule "generate-proto"]
-	path = generate-proto
-	url = https://github.com/Anmol92verma/slack_multiplatform_generate_protos.git
