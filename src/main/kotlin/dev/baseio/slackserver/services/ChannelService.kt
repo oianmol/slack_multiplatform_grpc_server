@@ -1,9 +1,11 @@
 package dev.baseio.slackserver.services
 
-import database.SkChannel
 import dev.baseio.slackdata.protos.*
-import dev.baseio.slackserver.data.ChannelsDataSource
+import dev.baseio.slackserver.data.sources.ChannelsDataSource
+import dev.baseio.slackserver.data.models.SkChannel
 import dev.baseio.slackserver.services.interceptors.AUTH_CONTEXT_KEY
+import io.grpc.Status
+import io.grpc.StatusException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -11,61 +13,74 @@ import java.util.*
 import kotlin.coroutines.CoroutineContext
 
 class ChannelService(
-  coroutineContext: CoroutineContext = Dispatchers.IO,
-  private val channelsDataSource: ChannelsDataSource
+    coroutineContext: CoroutineContext = Dispatchers.IO,
+    private val channelsDataSource: ChannelsDataSource
 ) :
-  ChannelsServiceGrpcKt.ChannelsServiceCoroutineImplBase(coroutineContext) {
+    ChannelsServiceGrpcKt.ChannelsServiceCoroutineImplBase(coroutineContext) {
 
-  override suspend fun saveChannel(request: SKChannel): SKChannel {
-    val clientId = AUTH_CONTEXT_KEY.get()
-    return channelsDataSource.insertChannel(request.toDBChannel()).toGRPC()
-  }
-
-  override fun getChannels(request: SKChannelRequest): Flow<SKChannels> {
-    return channelsDataSource.getChannels(request.workspaceId).map {
-      val channels = it.executeAsList().map { dbChannel ->
-        dbChannel.toGRPC()
-      }
-      SKChannels.newBuilder()
-        .addAllChannels(channels)
-        .build()
+    override suspend fun updateSKChannel(request: SKChannel): SKChannel {
+        return channelsDataSource.updateChannel(request.toDBChannel())?.toGRPC()
+            ?: throw StatusException(Status.NOT_FOUND)
     }
-  }
+
+    override suspend fun saveChannel(request: SKChannel): SKChannel {
+        val clientId = AUTH_CONTEXT_KEY.get()
+        return channelsDataSource.insertChannel(request.toDBChannel()).toGRPC()
+    }
+
+    override fun registerChangeInChannel(request: SKChannelRequest): Flow<SKChannelChangeSnapshot> {
+        return channelsDataSource.getChannelChangeStream(request.workspaceId).map { skChannel ->
+            SKChannelChangeSnapshot.newBuilder()
+                .apply {
+                    skChannel.first?.toGRPC()?.let { skMessage ->
+                        previous = skMessage
+                    }
+                    skChannel.second?.toGRPC()?.let { skMessage ->
+                        latest = skMessage
+                    }
+                }
+                .build()
+        }
+    }
+
+    override suspend fun getChannels(request: SKChannelRequest): SKChannels {
+        return channelsDataSource.getChannels(request.workspaceId).run {
+            SKChannels.newBuilder()
+                .addAllChannels(this@run.map { it.toGRPC() })
+                .build()
+        }
+    }
 }
 
 fun SKChannel.toDBChannel(
-  workspaceId: String = UUID.randomUUID().toString(),
-  channelId: String = UUID.randomUUID().toString()
+    workspaceId: String = UUID.randomUUID().toString(),
+    channelId: String = UUID.randomUUID().toString()
 ): SkChannel {
-  return SkChannel(
-    this.uuid.takeIf { !it.isNullOrEmpty() } ?: channelId,
-    this.workspaceId ?: workspaceId,
-    this.name,
-    createdDate.toInt(),
-    modifiedDate.toInt(),
-    isMuted.oneOrZero(), isPrivate.oneOrZero(),
-    isStarred.oneOrZero(), isShareOutSide.oneOrZero(),
-    isOneToOne.oneOrZero(),
-    avatarUrl
-  )
-}
-
-private fun Boolean.oneOrZero(): Int {
-  return if (this) 1 else 0
+    return SkChannel(
+        this.uuid.takeIf { !it.isNullOrEmpty() } ?: channelId,
+        this.workspaceId ?: workspaceId,
+        this.name,
+        createdDate,
+        modifiedDate,
+        isMuted, isPrivate,
+        isStarred, isShareOutSide,
+        isOneToOne,
+        avatarUrl
+    )
 }
 
 fun SkChannel.toGRPC(): SKChannel {
-  return SKChannel.newBuilder()
-    .setUuid(this.uuid)
-    .setAvatarUrl(this.avatarUrl)
-    .setName(this.name)
-    .setCreatedDate(this.createdDate.toLong())
-    .setIsMuted(this.isMuted == 1)
-    .setIsPrivate(this.isPrivate == 1)
-    .setIsStarred(this.isStarred == 1)
-    .setIsOneToOne(this.isOneToOne == 1)
-    .setIsShareOutSide(this.isShareOutSide == 1)
-    .setWorkspaceId(this.workspaceId)
-    .setModifiedDate(this.modifiedDate.toLong())
-    .build()
+    return SKChannel.newBuilder()
+        .setUuid(this.uuid)
+        .setAvatarUrl(this.avatarUrl)
+        .setName(this.name)
+        .setCreatedDate(this.createdDate)
+        .setIsMuted(this.isMuted)
+        .setIsPrivate(this.isPrivate)
+        .setIsStarred(this.isStarred)
+        .setIsOneToOne(this.isOneToOne)
+        .setIsShareOutSide(this.isShareOutSide)
+        .setWorkspaceId(this.workspaceId)
+        .setModifiedDate(this.modifiedDate)
+        .build()
 }

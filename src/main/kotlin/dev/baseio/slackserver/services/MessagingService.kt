@@ -1,11 +1,16 @@
 package dev.baseio.slackserver.services
 
-import database.SkMessage
 import dev.baseio.slackdata.protos.*
-import dev.baseio.slackserver.data.MessagesDataSource
-import dev.baseio.slackserver.data.UsersDataSource
+import dev.baseio.slackserver.data.sources.MessagesDataSource
+import dev.baseio.slackserver.data.models.SkMessage
+import dev.baseio.slackserver.data.sources.UsersDataSource
+import io.grpc.Status
+import io.grpc.StatusException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
+import java.util.UUID
 import kotlin.coroutines.CoroutineContext
 
 class MessagingService(
@@ -14,32 +19,50 @@ class MessagingService(
     private val usersDataSource: UsersDataSource
 ) : MessagesServiceGrpcKt.MessagesServiceCoroutineImplBase(coroutineContext) {
 
+    override suspend fun updateMessage(request: SKMessage): SKMessage {
+        // TODO validate the caller
+        return messagesDataSource.updateMessage(request.toDBMessage())?.toGrpc()
+            ?: throw StatusException(Status.NOT_FOUND)
+    }
+
     override suspend fun saveMessage(request: SKMessage): SKMessage {
         return messagesDataSource
             .saveMessage(request.toDBMessage())
             .toGrpc()
     }
 
-    override fun getMessages(request: SKWorkspaceChannelRequest): Flow<SKMessages> {
-        return messagesDataSource.getMessages(workspaceId = request.workspaceId, channelId = request.channelId)
-            .map { query ->
-                val skMessages = query.executeAsList().map { skMessage ->
-                    val user = usersDataSource.getUser(skMessage.sender, skMessage.workspaceId)
-                    user?.let {
-                        skMessage.toGrpc().copy {
-                            senderInfo = it.toGrpc()
-                        }
-                    } ?: run {
-                        skMessage.toGrpc()
+    override fun registerChangeInMessage(request: SKWorkspaceChannelRequest): Flow<SKMessageChangeSnapshot> {
+        return messagesDataSource.registerForChanges(request).map {
+            SKMessageChangeSnapshot.newBuilder()
+                .apply {
+                    it.first?.toGrpc()?.let { skMessage ->
+                        previous = skMessage
+                    }
+                    it.second?.toGrpc()?.let { skMessage ->
+                        latest = skMessage
                     }
                 }
-                SKMessages.newBuilder()
-                    .addAllMessages(skMessages)
-                    .build()
-            }.catch { throwable ->
-                throwable.printStackTrace()
-                emit(SKMessages.newBuilder().build())
+                .build()
+        }.catch {
+            it.printStackTrace()
+        }
+    }
+
+    override suspend fun getMessages(request: SKWorkspaceChannelRequest): SKMessages {
+        val messages = messagesDataSource.getMessages(workspaceId = request.workspaceId, channelId = request.channelId)
+            .map { skMessage ->
+                val user = usersDataSource.getUser(skMessage.sender, skMessage.workspaceId)
+                user?.let {
+                    skMessage.toGrpc().copy {
+                        senderInfo = it.toGrpc()
+                    }
+                } ?: run {
+                    skMessage.toGrpc()
+                }
             }
+        return SKMessages.newBuilder()
+            .addAllMessages(messages)
+            .build()
     }
 }
 
@@ -50,21 +73,21 @@ private fun SkMessage.toGrpc(): SKMessage {
         .setModifiedDate(this.modifiedDate.toLong())
         .setWorkspaceId(this.workspaceId)
         .setChannelId(this.channelId)
-        .setReceiver(this.receiver_)
+        .setReceiver(this.receiver)
         .setSender(this.sender)
         .setText(this.message)
         .build()
 }
 
-private fun SKMessage.toDBMessage(): SkMessage {
+private fun SKMessage.toDBMessage(uuid: String = UUID.randomUUID().toString()): SkMessage {
     return SkMessage(
-        uuid = this.uuid,
+        uuid = this.uuid.takeIf { !it.isNullOrEmpty() } ?: uuid,
         workspaceId = this.workspaceId,
         channelId,
         text,
         receiver,
         sender,
-        createdDate.toInt(),
-        modifiedDate.toInt()
+        createdDate,
+        modifiedDate
     )
 }

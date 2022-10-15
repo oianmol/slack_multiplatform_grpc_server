@@ -1,5 +1,2 @@
-include(":generate-proto")
-include(":protos")
-
-rootProject.name = "SlackServer"
+rootProject.name = "slack_multiplatform_grpc_server"
 

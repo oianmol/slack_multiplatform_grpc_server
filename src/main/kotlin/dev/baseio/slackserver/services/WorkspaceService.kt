@@ -1,14 +1,16 @@
 package dev.baseio.slackserver.services
 
-import database.FindWorkspacesForEmailId
-import database.SkWorkspace
 import dev.baseio.slackdata.protos.*
-import dev.baseio.slackserver.data.AuthDataSource
-import dev.baseio.slackserver.data.WorkspaceDataSource
+import dev.baseio.slackserver.data.sources.AuthDataSource
+import dev.baseio.slackserver.data.models.SkWorkspace
+import dev.baseio.slackserver.data.sources.WorkspaceDataSource
+import dev.baseio.slackserver.services.interceptors.AUTH_CONTEXT_KEY
 import io.grpc.Status
 import io.grpc.StatusException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
 import java.util.UUID
 import kotlin.coroutines.CoroutineContext
 
@@ -19,11 +21,35 @@ class WorkspaceService(
 ) :
     WorkspaceServiceGrpcKt.WorkspaceServiceCoroutineImplBase(coroutineContext) {
 
+    override suspend fun updateWorkspace(request: SKWorkspace): SKWorkspace {
+        val authData = AUTH_CONTEXT_KEY.get()
+        //todo authorize this request!
+        return workspaceDataSource.updateWorkspace(request.toDBWorkspace())?.toGRPC()
+            ?: throw StatusException(Status.NOT_FOUND)
+    }
+
+    override fun registerChangeInWorkspace(request: SKWorkspace): Flow<SKWorkspaceChangeSnapshot> {
+        return workspaceDataSource.registerForChanges(request.uuid).map {
+            SKWorkspaceChangeSnapshot.newBuilder()
+                .apply {
+                    it.first?.toGRPC()?.let { skMessage ->
+                        previous = skMessage
+                    }
+                    it.second?.toGRPC()?.let { skMessage ->
+                        latest = skMessage
+                    }
+                }
+                .build()
+        }.catch {
+            it.printStackTrace()
+        }
+    }
+
     override suspend fun findWorkspaceForName(request: SKFindWorkspacesRequest): SKWorkspace {
         return workspaceDataSource.findWorkspaceForName(request.name)?.let { workspace ->
             sKWorkspace {
                 uuid = workspace.uuid ?: ""
-                lastSelected = workspace.lastSelected == 1
+                lastSelected = workspace.lastSelected == true
                 picUrl = workspace.picUrl ?: ""
                 domain = workspace.domain ?: ""
                 name = workspace.name ?: ""
@@ -39,7 +65,7 @@ class WorkspaceService(
             .addAllWorkspaces(workspaces.map { workspace ->
                 sKWorkspace {
                     uuid = workspace.uuid ?: ""
-                    lastSelected = workspace.lastSelected == 1
+                    lastSelected = workspace.lastSelected == true
                     picUrl = workspace.picUrl ?: ""
                     domain = workspace.domain ?: ""
                     name = workspace.name ?: ""
@@ -54,7 +80,7 @@ class WorkspaceService(
         } ?: run {
             val savedWorkspace = workspaceDataSource
                 .saveWorkspace(request.workspace.toDBWorkspace())
-                .toGRPC()
+                ?.toGRPC() ?: throw StatusException(Status.ABORTED)
             val registered = authDataSouurce.register(
                 request.user.email,
                 request.user.password,
@@ -64,18 +90,11 @@ class WorkspaceService(
         }
     }
 
-    override fun getWorkspaces(request: Empty): Flow<SKWorkspaces> {
-        return workspaceDataSource.getWorkspaces().map { query ->
-            val workspaces = query.executeAsList().map { dbWorkspace ->
-                dbWorkspace.toGRPC()
-            }
-            SKWorkspaces.newBuilder()
-                .addAllWorkspaces(workspaces)
-                .build()
-        }.catch { throwable ->
-            throwable.printStackTrace()
-            emit(SKWorkspaces.newBuilder().build())
-        }
+    override suspend fun getWorkspaces(request: Empty): SKWorkspaces {
+        val workspaces = workspaceDataSource.getWorkspaces()
+        return SKWorkspaces.newBuilder()
+            .addAllWorkspaces(workspaces.map { it.toGRPC() })
+            .build()
     }
 }
 
@@ -85,7 +104,7 @@ fun SkWorkspace.toGRPC(): SKWorkspace {
         .setUuid(dbWorkspace.uuid)
         .setName(dbWorkspace.name)
         .setDomain(dbWorkspace.domain)
-        .setLastSelected(dbWorkspace.lastSelected == 1)
+        .setLastSelected(dbWorkspace.lastSelected)
         .setPicUrl(dbWorkspace.picUrl)
         .build()
 }
@@ -96,6 +115,6 @@ fun SKWorkspace.toDBWorkspace(workspaceId: String = UUID.randomUUID().toString()
         this.name,
         this.domain.takeIf { !it.isNullOrEmpty() } ?: "$name.slack.com",
         this.picUrl.takeIf { !it.isNullOrEmpty() } ?: "https://picsum.photos/300/300",
-        if (this.lastSelected) 1 else 0
+        this.lastSelected
     )
 }

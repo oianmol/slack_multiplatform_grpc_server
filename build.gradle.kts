@@ -1,14 +1,6 @@
 plugins {
-  kotlin("jvm") version "1.7.10"
+  kotlin("jvm") version "1.7.20"
   application
-  id("com.squareup.sqldelight") version "1.5.3"
-}
-
-sqldelight {
-  database("SlackCloneDB") { // This will be the name of the generated database class.
-    packageName = "dev.baseio"
-    dialect = "mysql"
-  }
 }
 
 group = "dev.baseio.slackserver"
@@ -21,25 +13,23 @@ repositories {
 
 dependencies {
   testImplementation(kotlin("test"))
-  implementation("io.grpc:grpc-netty-shaded:1.49.1")
-  implementation("dev.baseio.slackdatalib:slack-multiplatform-generate-protos:1.0")
-  val sqldelightVersion = "1.5.3"
-  implementation("com.squareup.sqldelight:runtime-jvm:$sqldelightVersion")
-  implementation("com.squareup.sqldelight:jdbc-driver:$sqldelightVersion")
-  implementation("com.squareup.sqldelight:coroutines-extensions:$sqldelightVersion")
+  // grpc
+  implementation("io.grpc:grpc-netty-shaded:1.49.2")
+  implementation("dev.baseio.slackdatalib:slack-multiplatform-generate-protos:1.0.0")
+
+  //mongodb
+  implementation("org.litote.kmongo:kmongo:4.7.1")
+  implementation("org.litote.kmongo:kmongo-async:4.7.1")
+  implementation("org.litote.kmongo:kmongo-coroutine:4.7.1")
+
+
+  //jwt
   implementation("io.jsonwebtoken:jjwt-api:0.11.5")
   runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
   runtimeOnly("io.jsonwebtoken:jjwt-orgjson:0.11.5")
+
+  //passwords
   implementation("at.favre.lib:bcrypt:0.9.0")
-
-  // Hikari JDBC connection pool
-  implementation("com.zaxxer:HikariCP:5.0.1")
-
-  // MySQL drivers
-  implementation("com.h2database:h2:2.1.214")
-  implementation("org.mariadb.jdbc:mariadb-java-client:3.0.6")
-  implementation("mysql:mysql-connector-java:8.0.30")
-  implementation("com.google.cloud.sql:mysql-socket-factory-connector-j-8:1.7.0")
 
 }
 
