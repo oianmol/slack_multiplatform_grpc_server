@@ -2,7 +2,7 @@ package dev.baseio.slackserver.data.impl
 
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.changestream.OperationType
-import dev.baseio.slackserver.data.sources.SkUser
+import dev.baseio.slackserver.data.models.SkUser
 import dev.baseio.slackserver.data.sources.UsersDataSource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -16,6 +16,12 @@ class UsersDataSourceImpl(private val slackCloneDB: CoroutineDatabase) : UsersDa
     override suspend fun getUser(userId: String, workspaceId: String): SkUser? {
         return slackCloneDB.getCollection<SkUser>()
             .findOne(SkUser::uuid eq userId, SkUser::workspaceId eq workspaceId)
+    }
+
+    override suspend fun updateUser(request: SkUser): SkUser? {
+        slackCloneDB.getCollection<SkUser>()
+            .updateOne(SkUser::uuid eq request.uuid, request)
+        return getUser(request.uuid,request.workspaceId)
     }
 
     override suspend fun saveUser(skUser: SkUser): SkUser? {

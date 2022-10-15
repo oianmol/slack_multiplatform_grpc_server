@@ -1,23 +1,13 @@
 package dev.baseio.slackserver.data.sources
 
+import dev.baseio.slackserver.data.models.SkChannel
 import kotlinx.coroutines.flow.Flow
 
 interface ChannelsDataSource {
   suspend fun getChannels(workspaceId:String): List<SkChannel>
   suspend fun insertChannel(channel: SkChannel): SkChannel
   fun getChannelChangeStream(workspaceId: String): Flow<Pair<SkChannel?, SkChannel?>>
+    abstract suspend fun updateChannel(toDBChannel: SkChannel): SkChannel?
+  suspend fun getChannel(uuid: String, workspaceId: String): SkChannel?
 }
 
-data class SkChannel(
-  val uuid: String? = null,
-  val workspaceId:String,
-  val name: String? = null,
-  val createdDate: Long,
-  val modifiedDate: Long,
-  val isMuted: Boolean = false,
-  val isPrivate: Boolean = false,
-  val isStarred: Boolean = false,
-  val isShareOutSide: Boolean = false,
-  val isOneToOne: Boolean = false,
-  val avatarUrl: String?
-)

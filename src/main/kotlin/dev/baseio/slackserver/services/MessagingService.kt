@@ -2,8 +2,10 @@ package dev.baseio.slackserver.services
 
 import dev.baseio.slackdata.protos.*
 import dev.baseio.slackserver.data.sources.MessagesDataSource
-import dev.baseio.slackserver.data.sources.SkMessage
+import dev.baseio.slackserver.data.models.SkMessage
 import dev.baseio.slackserver.data.sources.UsersDataSource
+import io.grpc.Status
+import io.grpc.StatusException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -16,6 +18,13 @@ class MessagingService(
     private val messagesDataSource: MessagesDataSource,
     private val usersDataSource: UsersDataSource
 ) : MessagesServiceGrpcKt.MessagesServiceCoroutineImplBase(coroutineContext) {
+
+    override suspend fun updateMessage(request: SKMessage): SKMessage {
+        // TODO validate the caller
+        return messagesDataSource.updateMessage(request.toDBMessage())?.toGrpc()
+            ?: throw StatusException(Status.NOT_FOUND)
+    }
+
     override suspend fun saveMessage(request: SKMessage): SKMessage {
         return messagesDataSource
             .saveMessage(request.toDBMessage())

@@ -2,11 +2,15 @@ package dev.baseio.slackserver.services
 
 import dev.baseio.slackdata.protos.*
 import dev.baseio.slackserver.data.sources.AuthDataSource
-import dev.baseio.slackserver.data.sources.SkWorkspace
+import dev.baseio.slackserver.data.models.SkWorkspace
 import dev.baseio.slackserver.data.sources.WorkspaceDataSource
+import dev.baseio.slackserver.services.interceptors.AUTH_CONTEXT_KEY
 import io.grpc.Status
 import io.grpc.StatusException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
 import java.util.UUID
 import kotlin.coroutines.CoroutineContext
 
@@ -16,6 +20,30 @@ class WorkspaceService(
     private val authDataSouurce: AuthDataSource
 ) :
     WorkspaceServiceGrpcKt.WorkspaceServiceCoroutineImplBase(coroutineContext) {
+
+    override suspend fun updateWorkspace(request: SKWorkspace): SKWorkspace {
+        val authData = AUTH_CONTEXT_KEY.get()
+        //todo authorize this request!
+        return workspaceDataSource.updateWorkspace(request.toDBWorkspace())?.toGRPC()
+            ?: throw StatusException(Status.NOT_FOUND)
+    }
+
+    override fun registerChangeInWorkspace(request: SKWorkspace): Flow<SKWorkspaceChangeSnapshot> {
+        return workspaceDataSource.registerForChanges(request.uuid).map {
+            SKWorkspaceChangeSnapshot.newBuilder()
+                .apply {
+                    it.first?.toGRPC()?.let { skMessage ->
+                        previous = skMessage
+                    }
+                    it.second?.toGRPC()?.let { skMessage ->
+                        latest = skMessage
+                    }
+                }
+                .build()
+        }.catch {
+            it.printStackTrace()
+        }
+    }
 
     override suspend fun findWorkspaceForName(request: SKFindWorkspacesRequest): SKWorkspace {
         return workspaceDataSource.findWorkspaceForName(request.name)?.let { workspace ->

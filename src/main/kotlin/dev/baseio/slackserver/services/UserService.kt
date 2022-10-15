@@ -2,7 +2,7 @@ package dev.baseio.slackserver.services
 
 
 import dev.baseio.slackdata.protos.*
-import dev.baseio.slackserver.data.sources.SkUser
+import dev.baseio.slackserver.data.models.SkUser
 import dev.baseio.slackserver.data.sources.UsersDataSource
 import dev.baseio.slackserver.services.interceptors.AUTH_CONTEXT_KEY
 import io.grpc.Status
@@ -15,6 +15,12 @@ import kotlin.coroutines.CoroutineContext
 
 class UserService(coroutineContext: CoroutineContext = Dispatchers.IO, private val usersDataSource: UsersDataSource) :
     UsersServiceGrpcKt.UsersServiceCoroutineImplBase(coroutineContext) {
+
+
+    override suspend fun updateSKUser(request: SKUser): SKUser {
+        return usersDataSource.updateUser(request.toDBUser())?.toGrpc()
+            ?: throw StatusException(Status.NOT_FOUND)
+    }
 
     override suspend fun currentLoggedInUser(request: Empty): SKUser {
         val authData = AUTH_CONTEXT_KEY.get() ?: throw StatusException(Status.UNAUTHENTICATED)
