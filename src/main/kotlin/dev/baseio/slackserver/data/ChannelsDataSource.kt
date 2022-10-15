@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.Flow
 interface ChannelsDataSource {
   suspend fun getChannels(workspaceId:String): List<SkChannel>
   suspend fun insertChannel(channel: SkChannel): SkChannel
-  fun getChannelChangeStream(workspaceId: String): Flow<SkChannel>
+  fun getChannelChangeStream(workspaceId: String): Flow<Pair<SkChannel?,SkChannel?>>
 }
 
 data class SkChannel(

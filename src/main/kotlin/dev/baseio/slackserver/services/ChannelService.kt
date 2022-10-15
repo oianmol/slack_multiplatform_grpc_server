@@ -21,6 +21,21 @@ class ChannelService(
         return channelsDataSource.insertChannel(request.toDBChannel()).toGRPC()
     }
 
+    override fun registerChangeInChannel(request: SKChannelRequest): Flow<SKChannelChangeSnapshot> {
+        return channelsDataSource.getChannelChangeStream(request.workspaceId).map { skChannel ->
+            SKChannelChangeSnapshot.newBuilder()
+                .apply {
+                    skChannel.first?.toGRPC()?.let { skMessage ->
+                        previous = skMessage
+                    }
+                    skChannel.second?.toGRPC()?.let { skMessage ->
+                        latest = skMessage
+                    }
+                }
+                .build()
+        }
+    }
+
     override suspend fun getChannels(request: SKChannelRequest): SKChannels {
         return channelsDataSource.getChannels(request.workspaceId).run {
             SKChannels.newBuilder()

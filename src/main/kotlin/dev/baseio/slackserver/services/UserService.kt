@@ -25,8 +25,14 @@ class UserService(coroutineContext: CoroutineContext = Dispatchers.IO, private v
     override fun registerChangeInUsers(request: SKWorkspaceChannelRequest): Flow<SKUserChangeSnapshot> {
         return usersDataSource.getChangeInUserFor(request.workspaceId).map { skUser ->
             SKUserChangeSnapshot.newBuilder()
-                .setPrevious(skUser.first?.toGrpc())
-                .setLatest(skUser.second?.toGrpc())
+                .apply {
+                    skUser.first?.toGrpc()?.let { skMessage ->
+                        previous = skMessage
+                    }
+                    skUser.second?.toGrpc()?.let { skMessage ->
+                        latest = skMessage
+                    }
+                }
                 .build()
         }
     }

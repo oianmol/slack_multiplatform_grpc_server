@@ -26,21 +26,19 @@ import java.util.stream.Stream
 
 
 class ChannelsDataSourceImpl(private val slackCloneDB: CoroutineDatabase) : ChannelsDataSource {
-  override fun getChannelChangeStream(workspaceId: String): Flow<SkChannel> {
+  override fun getChannelChangeStream(workspaceId: String): Flow<Pair<SkChannel?, SkChannel?>> {
     val collection = slackCloneDB.getCollection<SkChannel>()
 
     val pipeline: List<Bson> = listOf(
       match(
-        or(
-          Document.parse("{'fullDocument.workspaceId': '$workspaceId'}"),
-          Filters.`in`("operationType", OperationType.values().toList())
-        )
+        Document.parse("{'fullDocument.workspaceId': '$workspaceId'}"),
+        Filters.`in`("operationType", OperationType.values().map { it.value }.toList())
       )
     )
 
     return collection
       .watch<SkChannel>(pipeline).toFlow().mapNotNull {
-        it.fullDocument
+        Pair(it.fullDocumentBeforeChange,it.fullDocument)
       }
   }
 

@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import java.util.UUID
 import kotlin.coroutines.CoroutineContext
 
 class MessagingService(
@@ -24,9 +25,17 @@ class MessagingService(
     override fun registerChangeInMessage(request: SKWorkspaceChannelRequest): Flow<SKMessageChangeSnapshot> {
         return messagesDataSource.registerForChanges(request).map {
             SKMessageChangeSnapshot.newBuilder()
-                .setLatest(it.second?.toGrpc())
-                .setPrevious(it.first?.toGrpc())
+                .apply {
+                    it.first?.toGrpc()?.let { skMessage ->
+                        previous = skMessage
+                    }
+                    it.second?.toGrpc()?.let { skMessage ->
+                        latest = skMessage
+                    }
+                }
                 .build()
+        }.catch {
+            it.printStackTrace()
         }
     }
 
@@ -61,9 +70,9 @@ private fun SkMessage.toGrpc(): SKMessage {
         .build()
 }
 
-private fun SKMessage.toDBMessage(): SkMessage {
+private fun SKMessage.toDBMessage(uuid: String = UUID.randomUUID().toString()): SkMessage {
     return SkMessage(
-        uuid = this.uuid,
+        uuid = this.uuid.takeIf { !it.isNullOrEmpty() } ?: uuid,
         workspaceId = this.workspaceId,
         channelId,
         text,

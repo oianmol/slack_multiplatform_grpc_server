@@ -32,10 +32,8 @@ class UsersDataSourceImpl(private val slackCloneDB: CoroutineDatabase) : UsersDa
 
         val pipeline: List<Bson> = listOf(
             match(
-                or(
-                    Document.parse("{'fullDocument.workspaceId': '$workspaceId'}"),
-                    Filters.`in`("operationType", OperationType.values().toList())
-                )
+                Document.parse("{'fullDocument.workspaceId': '$workspaceId'}"),
+                Filters.`in`("operationType", OperationType.values().map { it.value }.toList())
             )
         )
 

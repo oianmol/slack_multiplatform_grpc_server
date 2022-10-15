@@ -1,5 +1,6 @@
 package dev.baseio.slackserver.data.impl
 
+import com.mongodb.client.model.Aggregates
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.changestream.OperationType
 import dev.baseio.slackdata.protos.SKWorkspaceChannelRequest
@@ -9,14 +10,12 @@ import io.grpc.Status
 import io.grpc.StatusException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
 import org.bson.Document
 import org.bson.conversions.Bson
 import org.litote.kmongo.and
 import org.litote.kmongo.coroutine.CoroutineDatabase
 import org.litote.kmongo.eq
 import org.litote.kmongo.match
-import org.litote.kmongo.or
 
 class MessagesDataSourceImpl(private val slackCloneDB: CoroutineDatabase) : MessagesDataSource {
 
@@ -25,13 +24,9 @@ class MessagesDataSourceImpl(private val slackCloneDB: CoroutineDatabase) : Mess
 
         val pipeline: List<Bson> = listOf(
             match(
-                and(
-                    Document.parse("{'fullDocument.workspaceId': '${request.workspaceId}'}"),
-                    Filters.`in`("operationType", OperationType.values().toList())
-                ), and(
-                    Document.parse("{'fullDocument.channelId': '${request.channelId}'}"),
-                    Filters.`in`("operationType", OperationType.values().toList())
-                )
+                Document.parse("{'fullDocument.workspaceId': '${request.workspaceId}'}"),
+                Document.parse("{'fullDocument.channelId': '${request.channelId}'}"),
+                Filters.`in`("operationType", OperationType.values().map { it.value }.toList())
             )
         )
 
