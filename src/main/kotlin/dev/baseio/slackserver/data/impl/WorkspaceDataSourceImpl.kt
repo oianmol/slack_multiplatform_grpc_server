@@ -1,10 +1,8 @@
 package dev.baseio.slackserver.data.impl
 
-import dev.baseio.slackserver.data.SkAuthUser
-import dev.baseio.slackserver.data.SkUser
-import dev.baseio.slackserver.data.SkWorkspace
-import dev.baseio.slackserver.data.WorkspaceDataSource
-import kotlinx.coroutines.flow.Flow
+import dev.baseio.slackserver.data.sources.SkUser
+import dev.baseio.slackserver.data.sources.SkWorkspace
+import dev.baseio.slackserver.data.sources.WorkspaceDataSource
 import org.litote.kmongo.coroutine.CoroutineDatabase
 import org.litote.kmongo.eq
 import org.litote.kmongo.`in`

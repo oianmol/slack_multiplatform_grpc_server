@@ -1,18 +1,16 @@
 package dev.baseio.slackserver.data.impl
 
-import com.mongodb.client.model.Aggregates
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.changestream.OperationType
 import dev.baseio.slackdata.protos.SKWorkspaceChannelRequest
-import dev.baseio.slackserver.data.MessagesDataSource
-import dev.baseio.slackserver.data.SkMessage
+import dev.baseio.slackserver.data.sources.MessagesDataSource
+import dev.baseio.slackserver.data.sources.SkMessage
 import io.grpc.Status
 import io.grpc.StatusException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.bson.Document
 import org.bson.conversions.Bson
-import org.litote.kmongo.and
 import org.litote.kmongo.coroutine.CoroutineDatabase
 import org.litote.kmongo.eq
 import org.litote.kmongo.match

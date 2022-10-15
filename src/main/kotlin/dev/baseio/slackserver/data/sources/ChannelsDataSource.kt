@@ -1,11 +1,11 @@
-package dev.baseio.slackserver.data
+package dev.baseio.slackserver.data.sources
 
 import kotlinx.coroutines.flow.Flow
 
 interface ChannelsDataSource {
   suspend fun getChannels(workspaceId:String): List<SkChannel>
   suspend fun insertChannel(channel: SkChannel): SkChannel
-  fun getChannelChangeStream(workspaceId: String): Flow<Pair<SkChannel?,SkChannel?>>
+  fun getChannelChangeStream(workspaceId: String): Flow<Pair<SkChannel?, SkChannel?>>
 }
 
 data class SkChannel(

@@ -1,9 +1,9 @@
 package dev.baseio.slackserver.services
 
 import dev.baseio.slackdata.protos.*
-import dev.baseio.slackserver.data.MessagesDataSource
-import dev.baseio.slackserver.data.SkMessage
-import dev.baseio.slackserver.data.UsersDataSource
+import dev.baseio.slackserver.data.sources.MessagesDataSource
+import dev.baseio.slackserver.data.sources.SkMessage
+import dev.baseio.slackserver.data.sources.UsersDataSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch

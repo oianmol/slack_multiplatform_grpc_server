@@ -1,4 +1,4 @@
-package dev.baseio.slackserver.data
+package dev.baseio.slackserver.data.database
 
 import org.litote.kmongo.coroutine.coroutine
 import org.litote.kmongo.reactivestreams.KMongo

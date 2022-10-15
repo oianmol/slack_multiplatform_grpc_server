@@ -2,8 +2,8 @@ package dev.baseio.slackserver.services
 
 
 import dev.baseio.slackdata.protos.*
-import dev.baseio.slackserver.data.SkUser
-import dev.baseio.slackserver.data.UsersDataSource
+import dev.baseio.slackserver.data.sources.SkUser
+import dev.baseio.slackserver.data.sources.UsersDataSource
 import dev.baseio.slackserver.services.interceptors.AUTH_CONTEXT_KEY
 import io.grpc.Status
 import io.grpc.StatusException

@@ -2,8 +2,8 @@ package dev.baseio.slackserver.data.impl
 
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.changestream.OperationType
-import dev.baseio.slackserver.data.ChannelsDataSource
-import dev.baseio.slackserver.data.SkChannel
+import dev.baseio.slackserver.data.sources.ChannelsDataSource
+import dev.baseio.slackserver.data.sources.SkChannel
 import io.grpc.Status
 import io.grpc.StatusException
 import kotlinx.coroutines.flow.Flow

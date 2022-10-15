@@ -2,18 +2,15 @@ package dev.baseio.slackserver.data.impl
 
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.changestream.OperationType
-import dev.baseio.slackserver.data.SkChannel
-import dev.baseio.slackserver.data.SkUser
-import dev.baseio.slackserver.data.UsersDataSource
+import dev.baseio.slackserver.data.sources.SkUser
+import dev.baseio.slackserver.data.sources.UsersDataSource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
 import org.bson.Document
 import org.bson.conversions.Bson
 import org.litote.kmongo.coroutine.CoroutineDatabase
 import org.litote.kmongo.eq
 import org.litote.kmongo.match
-import org.litote.kmongo.or
 
 class UsersDataSourceImpl(private val slackCloneDB: CoroutineDatabase) : UsersDataSource {
     override suspend fun getUser(userId: String, workspaceId: String): SkUser? {
@@ -27,7 +24,7 @@ class UsersDataSourceImpl(private val slackCloneDB: CoroutineDatabase) : UsersDa
         return slackCloneDB.getCollection<SkUser>().findOne(SkUser::uuid eq skUser.uuid)
     }
 
-    override fun getChangeInUserFor(workspaceId: String): Flow<Pair<SkUser?,SkUser?>> {
+    override fun getChangeInUserFor(workspaceId: String): Flow<Pair<SkUser?, SkUser?>> {
         val collection = slackCloneDB.getCollection<SkUser>()
 
         val pipeline: List<Bson> = listOf(

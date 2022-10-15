@@ -1,9 +1,9 @@
 package dev.baseio.slackserver.data.impl
 
 import at.favre.lib.crypto.bcrypt.BCrypt
-import dev.baseio.slackserver.data.AuthDataSource
-import dev.baseio.slackserver.data.SkAuthUser
-import dev.baseio.slackserver.data.SkUser
+import dev.baseio.slackserver.data.sources.AuthDataSource
+import dev.baseio.slackserver.data.sources.SkAuthUser
+import dev.baseio.slackserver.data.sources.SkUser
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import org.litote.kmongo.coroutine.CoroutineDatabase
 import org.litote.kmongo.eq

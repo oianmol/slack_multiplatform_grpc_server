@@ -1,13 +1,12 @@
 package dev.baseio.slackserver.services
 
 import dev.baseio.slackdata.protos.*
-import dev.baseio.slackserver.data.AuthDataSource
-import dev.baseio.slackserver.data.SkWorkspace
-import dev.baseio.slackserver.data.WorkspaceDataSource
+import dev.baseio.slackserver.data.sources.AuthDataSource
+import dev.baseio.slackserver.data.sources.SkWorkspace
+import dev.baseio.slackserver.data.sources.WorkspaceDataSource
 import io.grpc.Status
 import io.grpc.StatusException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.*
 import java.util.UUID
 import kotlin.coroutines.CoroutineContext
 

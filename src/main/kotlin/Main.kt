@@ -1,4 +1,4 @@
-import dev.baseio.slackserver.data.Database
+import dev.baseio.slackserver.data.database.Database
 import dev.baseio.slackserver.data.impl.*
 import dev.baseio.slackserver.services.*
 import dev.baseio.slackserver.services.interceptors.AuthInterceptor

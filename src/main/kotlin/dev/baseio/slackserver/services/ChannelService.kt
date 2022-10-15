@@ -1,8 +1,8 @@
 package dev.baseio.slackserver.services
 
 import dev.baseio.slackdata.protos.*
-import dev.baseio.slackserver.data.ChannelsDataSource
-import dev.baseio.slackserver.data.SkChannel
+import dev.baseio.slackserver.data.sources.ChannelsDataSource
+import dev.baseio.slackserver.data.sources.SkChannel
 import dev.baseio.slackserver.services.interceptors.AUTH_CONTEXT_KEY
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow

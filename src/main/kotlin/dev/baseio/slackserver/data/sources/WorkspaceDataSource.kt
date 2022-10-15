@@ -1,6 +1,4 @@
-package dev.baseio.slackserver.data
-
-import kotlinx.coroutines.flow.Flow
+package dev.baseio.slackserver.data.sources
 
 interface WorkspaceDataSource {
   suspend fun getWorkspaces(): List<SkWorkspace>

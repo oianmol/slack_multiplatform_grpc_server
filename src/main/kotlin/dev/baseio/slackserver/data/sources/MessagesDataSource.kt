@@ -1,7 +1,5 @@
-package dev.baseio.slackserver.data
+package dev.baseio.slackserver.data.sources
 
-import dev.baseio.slackdata.protos.SKMessage
-import dev.baseio.slackdata.protos.SKMessages
 import dev.baseio.slackdata.protos.SKWorkspaceChannelRequest
 import kotlinx.coroutines.flow.Flow
 
@@ -24,6 +22,6 @@ data class SkMessage(
 )
 
 data class SKLastMessage(
-  val channel: SkChannel,
-  val message: SkMessage
+    val channel: SkChannel,
+    val message: SkMessage
 )

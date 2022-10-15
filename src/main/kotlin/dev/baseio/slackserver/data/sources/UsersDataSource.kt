@@ -1,4 +1,4 @@
-package dev.baseio.slackserver.data
+package dev.baseio.slackserver.data.sources
 
 import kotlinx.coroutines.flow.Flow
 
