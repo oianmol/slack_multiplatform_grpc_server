@@ -49,7 +49,7 @@ class WorkspaceService(
         return workspaceDataSource.findWorkspaceForName(request.name)?.let { workspace ->
             sKWorkspace {
                 uuid = workspace.uuid ?: ""
-                lastSelected = workspace.lastSelected == true
+                modifiedTime = workspace.modifiedTime
                 picUrl = workspace.picUrl ?: ""
                 domain = workspace.domain ?: ""
                 name = workspace.name ?: ""
@@ -65,7 +65,7 @@ class WorkspaceService(
             .addAllWorkspaces(workspaces.map { workspace ->
                 sKWorkspace {
                     uuid = workspace.uuid ?: ""
-                    lastSelected = workspace.lastSelected == true
+                    modifiedTime = workspace.modifiedTime
                     picUrl = workspace.picUrl ?: ""
                     domain = workspace.domain ?: ""
                     name = workspace.name ?: ""
@@ -104,7 +104,7 @@ fun SkWorkspace.toGRPC(): SKWorkspace {
         .setUuid(dbWorkspace.uuid)
         .setName(dbWorkspace.name)
         .setDomain(dbWorkspace.domain)
-        .setLastSelected(dbWorkspace.lastSelected)
+        .setModifiedTime(dbWorkspace.modifiedTime)
         .setPicUrl(dbWorkspace.picUrl)
         .build()
 }
@@ -115,6 +115,6 @@ fun SKWorkspace.toDBWorkspace(workspaceId: String = UUID.randomUUID().toString()
         this.name,
         this.domain.takeIf { !it.isNullOrEmpty() } ?: "$name.slack.com",
         this.picUrl.takeIf { !it.isNullOrEmpty() } ?: "https://picsum.photos/300/300",
-        this.lastSelected
+        this.modifiedTime
     )
 }

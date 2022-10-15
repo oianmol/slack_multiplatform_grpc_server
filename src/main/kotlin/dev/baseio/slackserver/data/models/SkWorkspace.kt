@@ -5,5 +5,5 @@ data class SkWorkspace(
     val name: String,
     val domain: String,
     val picUrl: String?,
-    val lastSelected: Boolean = false
+    val modifiedTime: Long
 )
