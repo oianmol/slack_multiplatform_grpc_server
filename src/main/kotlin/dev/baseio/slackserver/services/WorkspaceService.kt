@@ -1,7 +1,6 @@
 package dev.baseio.slackserver.services
 
 import dev.baseio.slackdata.protos.*
-import dev.baseio.slackserver.data.sources.AuthDataSource
 import dev.baseio.slackserver.data.models.SkWorkspace
 import dev.baseio.slackserver.data.sources.WorkspaceDataSource
 import dev.baseio.slackserver.services.interceptors.AUTH_CONTEXT_KEY
@@ -17,9 +16,9 @@ import kotlin.coroutines.CoroutineContext
 class WorkspaceService(
     coroutineContext: CoroutineContext = Dispatchers.IO,
     private val workspaceDataSource: WorkspaceDataSource,
-    private val authDataSouurce: AuthDataSource
+    private val registerUser: RegisterUserDelegate
 ) :
-    WorkspaceServiceGrpcKt.WorkspaceServiceCoroutineImplBase(coroutineContext) {
+    WorkspaceServiceGrpcKt.WorkspaceServiceCoroutineImplBase(coroutineContext), RegisterUserDelegate by registerUser {
 
     override suspend fun updateWorkspace(request: SKWorkspace): SKWorkspace {
         val authData = AUTH_CONTEXT_KEY.get()
@@ -76,17 +75,13 @@ class WorkspaceService(
 
     override suspend fun saveWorkspace(request: SKCreateWorkspaceRequest): SKAuthResult {
         workspaceDataSource.findWorkspaceForName(request.workspace.name)?.let {
-            throw StatusException(Status.ALREADY_EXISTS)
+            //if workspace exists then register the user!
+            return registerUser(request.user, workspaceId = it.uuid)
         } ?: run {
             val savedWorkspace = workspaceDataSource
                 .saveWorkspace(request.workspace.toDBWorkspace())
                 ?.toGRPC() ?: throw StatusException(Status.ABORTED)
-            val registered = authDataSouurce.register(
-                request.user.email,
-                request.user.password,
-                request.user.user.toDBUser().copy(workspaceId = savedWorkspace.uuid)
-            )
-            return skAuthResult(registered)
+            return registerUser(request.user, workspaceId = savedWorkspace.uuid)
         }
     }
 
