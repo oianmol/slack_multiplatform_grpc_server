@@ -1,8 +1,9 @@
 package dev.baseio.slackserver.services
 
-import database.SkUser
+
 import dev.baseio.slackdata.protos.*
 import dev.baseio.slackserver.data.AuthDataSource
+import dev.baseio.slackserver.data.SkUser
 import dev.baseio.slackserver.services.interceptors.*
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.io.Decoders

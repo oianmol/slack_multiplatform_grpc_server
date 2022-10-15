@@ -1,10 +1,23 @@
 package dev.baseio.slackserver.data
 
-import com.squareup.sqldelight.Query
-import database.SkChannel
 import kotlinx.coroutines.flow.Flow
 
 interface ChannelsDataSource {
-  fun getChannels(workspaceId:String): Flow<Query<SkChannel>>
-  abstract fun insertChannel(channel: SkChannel): SkChannel
+  suspend fun getChannels(workspaceId:String): List<SkChannel>
+  suspend fun insertChannel(channel: SkChannel): SkChannel
+  fun getChannelChangeStream(workspaceId: String): Flow<SkChannel>
 }
+
+data class SkChannel(
+  val uuid: String? = null,
+  val workspaceId:String,
+  val name: String? = null,
+  val createdDate: Long,
+  val modifiedDate: Long,
+  val isMuted: Boolean = false,
+  val isPrivate: Boolean = false,
+  val isStarred: Boolean = false,
+  val isShareOutSide: Boolean = false,
+  val isOneToOne: Boolean = false,
+  val avatarUrl: String?
+)

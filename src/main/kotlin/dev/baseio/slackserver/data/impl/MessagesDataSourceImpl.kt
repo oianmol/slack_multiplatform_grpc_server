@@ -1,32 +1,54 @@
 package dev.baseio.slackserver.data.impl
 
-import com.squareup.sqldelight.Query
-import com.squareup.sqldelight.runtime.coroutines.asFlow
-import database.SkMessage
-import dev.baseio.SlackCloneDB
+import com.mongodb.client.model.Filters
+import com.mongodb.client.model.changestream.OperationType
+import dev.baseio.slackdata.protos.SKWorkspaceChannelRequest
 import dev.baseio.slackserver.data.MessagesDataSource
+import dev.baseio.slackserver.data.SkMessage
+import io.grpc.Status
+import io.grpc.StatusException
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.mapNotNull
+import org.bson.Document
+import org.bson.conversions.Bson
+import org.litote.kmongo.and
+import org.litote.kmongo.coroutine.CoroutineDatabase
+import org.litote.kmongo.eq
+import org.litote.kmongo.match
+import org.litote.kmongo.or
 
-class MessagesDataSourceImpl(private val slackDB: SlackCloneDB) : MessagesDataSource {
-  override fun saveMessage(request: SkMessage): SkMessage {
-    // TODO why are we assuming that this will not crash :P
-    slackDB.slackschemaQueries
-      .insertMessage(
-        request.uuid,
-        request.workspaceId,
-        request.channelId,
-        request.message,
-        request.receiver_,
-        request.sender,
-        request.createdDate,
-        request.modifiedDate
+class MessagesDataSourceImpl(private val slackCloneDB: CoroutineDatabase) : MessagesDataSource {
+
+  override fun registerForChanges(request: SKWorkspaceChannelRequest): Flow<SkMessage> {
+    val collection = slackCloneDB.getCollection<SkMessage>()
+
+    val pipeline: List<Bson> = listOf(
+      match(
+        and(
+          Document.parse("{'fullDocument.workspaceId': '${request.workspaceId}'}"),
+          Filters.`in`("operationType", OperationType.values().toList())
+        ), and(
+          Document.parse("{'fullDocument.channelId': '${request.channelId}'}"),
+          Filters.`in`("operationType", OperationType.values().toList())
+        )
       )
-    return request
+    )
+
+    return collection
+      .watch<SkMessage>(pipeline).toFlow().mapNotNull {
+        it.fullDocument
+      }
   }
 
-  override fun getMessages(workspaceId: String, channelId: String): Flow<Query<SkMessage>> {
-    return slackDB.slackschemaQueries
-      .selectAllMessages(workspaceId = workspaceId, channelId = channelId)
-      .asFlow()
+  override suspend fun saveMessage(request: SkMessage): SkMessage {
+    val collection = slackCloneDB.getCollection<SkMessage>()
+    collection.insertOne(request)
+    return collection.findOne(SkMessage::uuid eq request.uuid) ?: throw StatusException(Status.CANCELLED)
+  }
+
+  override suspend fun getMessages(workspaceId: String, channelId: String): List<SkMessage> {
+    val collection = slackCloneDB.getCollection<SkMessage>()
+    return collection.find(SkMessage::workspaceId eq workspaceId,SkMessage::channelId eq channelId)
+      .toList()
   }
 }

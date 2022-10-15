@@ -1,11 +1,10 @@
 package dev.baseio.slackserver.data
 
-import com.squareup.sqldelight.Query
-import database.SkUser
 import kotlinx.coroutines.flow.Flow
 
 interface UsersDataSource {
-  fun saveUser(skUser: SkUser): SkUser
-  fun getUsers(workspaceId: String): Flow<Query<SkUser>>
-  abstract fun getUser(userId: String, workspaceId: String): SkUser?
+  suspend fun saveUser(skUser: SkUser): SkUser?
+  fun getChangeInUserFor(workspaceId: String): Flow<Pair<SkUser?, SkUser?>>
+  suspend fun getUsers(workspaceId: String): List<SkUser>
+  suspend fun getUser(userId: String, workspaceId: String): SkUser?
 }

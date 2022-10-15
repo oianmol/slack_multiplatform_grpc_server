@@ -1,15 +1,19 @@
 package dev.baseio.slackserver.data
 
-import com.squareup.sqldelight.Query
-import database.FindWorkspacesForEmailId
-import database.SkWorkspace
-import dev.baseio.slackdata.protos.SKWorkspace
-import dev.baseio.slackdata.protos.SKWorkspaces
 import kotlinx.coroutines.flow.Flow
 
 interface WorkspaceDataSource {
-  fun getWorkspaces(): Flow<Query<SkWorkspace>>
-  fun saveWorkspace(skWorkspace: SkWorkspace) :SkWorkspace
-  fun findWorkspacesForEmail(email: String): List<FindWorkspacesForEmailId>
-  fun findWorkspaceForName(name: String): SkWorkspace?
+  suspend fun getWorkspaces(): List<SkWorkspace>
+  suspend fun saveWorkspace(skWorkspace: SkWorkspace): SkWorkspace?
+  suspend fun findWorkspacesForEmail(email: String): List<SkWorkspace>
+  suspend fun findWorkspaceForName(name: String): SkWorkspace?
 }
+
+
+data class SkWorkspace(
+  val uuid: String,
+  val name: String,
+  val domain: String,
+  val picUrl: String?,
+  val lastSelected: Boolean = false
+)
