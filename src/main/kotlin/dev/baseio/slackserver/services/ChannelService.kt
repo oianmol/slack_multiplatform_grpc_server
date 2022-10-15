@@ -11,50 +11,54 @@ import java.util.*
 import kotlin.coroutines.CoroutineContext
 
 class ChannelService(
-  coroutineContext: CoroutineContext = Dispatchers.IO,
-  private val channelsDataSource: ChannelsDataSource
+    coroutineContext: CoroutineContext = Dispatchers.IO,
+    private val channelsDataSource: ChannelsDataSource
 ) :
-  ChannelsServiceGrpcKt.ChannelsServiceCoroutineImplBase(coroutineContext) {
+    ChannelsServiceGrpcKt.ChannelsServiceCoroutineImplBase(coroutineContext) {
 
-  override suspend fun saveChannel(request: SKChannel): SKChannel {
-    val clientId = AUTH_CONTEXT_KEY.get()
-    return channelsDataSource.insertChannel(request.toDBChannel()).toGRPC()
-  }
+    override suspend fun saveChannel(request: SKChannel): SKChannel {
+        val clientId = AUTH_CONTEXT_KEY.get()
+        return channelsDataSource.insertChannel(request.toDBChannel()).toGRPC()
+    }
 
-  override fun getChannels(request: SKChannelRequest): Flow<SKChannels> {
-    return super.getChannels(request)
-  }
+    override suspend fun getChannels(request: SKChannelRequest): SKChannels {
+        return channelsDataSource.getChannels(request.workspaceId).run {
+            SKChannels.newBuilder()
+                .addAllChannels(this@run.map { it.toGRPC() })
+                .build()
+        }
+    }
 }
 
 fun SKChannel.toDBChannel(
-  workspaceId: String = UUID.randomUUID().toString(),
-  channelId: String = UUID.randomUUID().toString()
+    workspaceId: String = UUID.randomUUID().toString(),
+    channelId: String = UUID.randomUUID().toString()
 ): SkChannel {
-  return SkChannel(
-    this.uuid.takeIf { !it.isNullOrEmpty() } ?: channelId,
-    this.workspaceId ?: workspaceId,
-    this.name,
-    createdDate,
-    modifiedDate,
-    isMuted, isPrivate,
-    isStarred, isShareOutSide,
-    isOneToOne,
-    avatarUrl
-  )
+    return SkChannel(
+        this.uuid.takeIf { !it.isNullOrEmpty() } ?: channelId,
+        this.workspaceId ?: workspaceId,
+        this.name,
+        createdDate,
+        modifiedDate,
+        isMuted, isPrivate,
+        isStarred, isShareOutSide,
+        isOneToOne,
+        avatarUrl
+    )
 }
 
 fun SkChannel.toGRPC(): SKChannel {
-  return SKChannel.newBuilder()
-    .setUuid(this.uuid)
-    .setAvatarUrl(this.avatarUrl)
-    .setName(this.name)
-    .setCreatedDate(this.createdDate)
-    .setIsMuted(this.isMuted)
-    .setIsPrivate(this.isPrivate)
-    .setIsStarred(this.isStarred)
-    .setIsOneToOne(this.isOneToOne)
-    .setIsShareOutSide(this.isShareOutSide)
-    .setWorkspaceId(this.workspaceId)
-    .setModifiedDate(this.modifiedDate)
-    .build()
+    return SKChannel.newBuilder()
+        .setUuid(this.uuid)
+        .setAvatarUrl(this.avatarUrl)
+        .setName(this.name)
+        .setCreatedDate(this.createdDate)
+        .setIsMuted(this.isMuted)
+        .setIsPrivate(this.isPrivate)
+        .setIsStarred(this.isStarred)
+        .setIsOneToOne(this.isOneToOne)
+        .setIsShareOutSide(this.isShareOutSide)
+        .setWorkspaceId(this.workspaceId)
+        .setModifiedDate(this.modifiedDate)
+        .build()
 }

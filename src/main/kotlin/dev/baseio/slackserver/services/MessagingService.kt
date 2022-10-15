@@ -11,62 +11,65 @@ import kotlinx.coroutines.flow.map
 import kotlin.coroutines.CoroutineContext
 
 class MessagingService(
-  coroutineContext: CoroutineContext = Dispatchers.IO,
-  private val messagesDataSource: MessagesDataSource,
-  private val usersDataSource: UsersDataSource
+    coroutineContext: CoroutineContext = Dispatchers.IO,
+    private val messagesDataSource: MessagesDataSource,
+    private val usersDataSource: UsersDataSource
 ) : MessagesServiceGrpcKt.MessagesServiceCoroutineImplBase(coroutineContext) {
-  override suspend fun saveMessage(request: SKMessage): SKMessage {
-    return messagesDataSource
-      .saveMessage(request.toDBMessage())
-      .toGrpc()
-  }
-
-  override fun registerChangeInMessage(request: SKWorkspaceChannelRequest): Flow<SKMessage> {
-    return messagesDataSource.registerForChanges(request).map {
-      it.toGrpc()
+    override suspend fun saveMessage(request: SKMessage): SKMessage {
+        return messagesDataSource
+            .saveMessage(request.toDBMessage())
+            .toGrpc()
     }
-  }
 
-  override suspend fun getMessages(request: SKWorkspaceChannelRequest): SKMessages {
-    val messages = messagesDataSource.getMessages(workspaceId = request.workspaceId, channelId = request.channelId)
-      .map { skMessage ->
-        val user = usersDataSource.getUser(skMessage.sender, skMessage.workspaceId)
-        user?.let {
-          skMessage.toGrpc().copy {
-            senderInfo = it.toGrpc()
-          }
-        } ?: run {
-          skMessage.toGrpc()
+    override fun registerChangeInMessage(request: SKWorkspaceChannelRequest): Flow<SKMessageChangeSnapshot> {
+        return messagesDataSource.registerForChanges(request).map {
+            SKMessageChangeSnapshot.newBuilder()
+                .setLatest(it.second?.toGrpc())
+                .setPrevious(it.first?.toGrpc())
+                .build()
         }
-      }
-    return SKMessages.newBuilder()
-      .addAllMessages(messages)
-      .build()
-  }
+    }
+
+    override suspend fun getMessages(request: SKWorkspaceChannelRequest): SKMessages {
+        val messages = messagesDataSource.getMessages(workspaceId = request.workspaceId, channelId = request.channelId)
+            .map { skMessage ->
+                val user = usersDataSource.getUser(skMessage.sender, skMessage.workspaceId)
+                user?.let {
+                    skMessage.toGrpc().copy {
+                        senderInfo = it.toGrpc()
+                    }
+                } ?: run {
+                    skMessage.toGrpc()
+                }
+            }
+        return SKMessages.newBuilder()
+            .addAllMessages(messages)
+            .build()
+    }
 }
 
 private fun SkMessage.toGrpc(): SKMessage {
-  return SKMessage.newBuilder()
-    .setUuid(this.uuid)
-    .setCreatedDate(this.createdDate.toLong())
-    .setModifiedDate(this.modifiedDate.toLong())
-    .setWorkspaceId(this.workspaceId)
-    .setChannelId(this.channelId)
-    .setReceiver(this.receiver)
-    .setSender(this.sender)
-    .setText(this.message)
-    .build()
+    return SKMessage.newBuilder()
+        .setUuid(this.uuid)
+        .setCreatedDate(this.createdDate.toLong())
+        .setModifiedDate(this.modifiedDate.toLong())
+        .setWorkspaceId(this.workspaceId)
+        .setChannelId(this.channelId)
+        .setReceiver(this.receiver)
+        .setSender(this.sender)
+        .setText(this.message)
+        .build()
 }
 
 private fun SKMessage.toDBMessage(): SkMessage {
-  return SkMessage(
-    uuid = this.uuid,
-    workspaceId = this.workspaceId,
-    channelId,
-    text,
-    receiver,
-    sender,
-    createdDate,
-    modifiedDate
-  )
+    return SkMessage(
+        uuid = this.uuid,
+        workspaceId = this.workspaceId,
+        channelId,
+        text,
+        receiver,
+        sender,
+        createdDate,
+        modifiedDate
+    )
 }

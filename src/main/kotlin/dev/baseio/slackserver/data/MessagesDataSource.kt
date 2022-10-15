@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
 interface MessagesDataSource {
   suspend fun saveMessage(request: SkMessage): SkMessage
   suspend fun getMessages(workspaceId: String, channelId: String): List<SkMessage>
-  fun registerForChanges(request: SKWorkspaceChannelRequest): Flow<SkMessage>
+  fun registerForChanges(request: SKWorkspaceChannelRequest): Flow<Pair<SkMessage?, SkMessage?>>
 }
 
 data class SkMessage(
