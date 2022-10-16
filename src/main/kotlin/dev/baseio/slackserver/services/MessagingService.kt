@@ -1,8 +1,12 @@
 package dev.baseio.slackserver.services
 
 import dev.baseio.slackdata.protos.*
+import dev.baseio.slackserver.data.models.SkChannel
+import dev.baseio.slackserver.data.models.SkChannelMember
 import dev.baseio.slackserver.data.sources.MessagesDataSource
 import dev.baseio.slackserver.data.models.SkMessage
+import dev.baseio.slackserver.data.sources.ChannelMemberDataSource
+import dev.baseio.slackserver.data.sources.ChannelsDataSource
 import dev.baseio.slackserver.data.sources.UsersDataSource
 import io.grpc.Status
 import io.grpc.StatusException
@@ -10,13 +14,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.runBlocking
 import java.util.UUID
 import kotlin.coroutines.CoroutineContext
 
 class MessagingService(
   coroutineContext: CoroutineContext = Dispatchers.IO,
   private val messagesDataSource: MessagesDataSource,
-  private val usersDataSource: UsersDataSource
+  private val usersDataSource: UsersDataSource,
+  private val channelsDataSource: ChannelsDataSource,
 ) : MessagesServiceGrpcKt.MessagesServiceCoroutineImplBase(coroutineContext) {
 
   override suspend fun updateMessage(request: SKMessage): SKMessage {
@@ -26,9 +32,28 @@ class MessagingService(
   }
 
   override suspend fun saveMessage(request: SKMessage): SKMessage {
-    return messagesDataSource
-      .saveMessage(request.toDBMessage())
-      .toGrpc()
+    try {
+      val channel = channelsDataSource.getChannel(request.channelId, request.workspaceId)
+      return channel?.let {
+        messagesDataSource
+          .saveMessage(request.toDBMessage())
+          .toGrpc()
+      } ?: kotlin.run {
+        val channelNew = channelsDataSource.createChannel(request)
+        messagesDataSource
+          .saveMessage(
+            request.toDBMessage()
+              .copy(channelId = channelNew.uuid)
+          )
+          .toGrpc().copy {
+            this.channel = channelNew.toGRPC()
+          }
+      }
+    } catch (ex: Exception) {
+      ex.printStackTrace()
+      return sKMessage {  }
+    }
+
   }
 
   override fun registerChangeInMessage(request: SKWorkspaceChannelRequest): Flow<SKMessageChangeSnapshot> {
