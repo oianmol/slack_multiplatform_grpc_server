@@ -19,7 +19,7 @@ class AuthDataSourceImpl(private val slackCloneDB: CoroutineDatabase) : AuthData
       )
     user.awaitFirstOrNull()?.let { user ->
       slackCloneDB.getCollection<SkAuthUser>().collection
-        .findOne(SkAuthUser::uuid eq user.uuid)
+        .findOne(SkAuthUser::userId eq user.uuid)
         .awaitFirstOrNull()?.let {
           val result: BCrypt.Result = BCrypt.verifyer().verify(password.toCharArray(), it.password)
           if (result.verified) {
