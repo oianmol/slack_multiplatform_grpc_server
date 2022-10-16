@@ -9,4 +9,5 @@ interface UsersDataSource {
   suspend fun getUsers(workspaceId: String): List<SkUser>
   suspend fun getUser(userId: String, workspaceId: String): SkUser?
     abstract suspend fun updateUser(request: SkUser): SkUser?
+  suspend fun getUserWithEmailId(emailId: String, workspaceId: String): SkUser?
 }

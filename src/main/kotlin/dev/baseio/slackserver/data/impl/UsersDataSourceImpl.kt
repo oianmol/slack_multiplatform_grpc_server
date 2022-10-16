@@ -18,6 +18,11 @@ class UsersDataSourceImpl(private val slackCloneDB: CoroutineDatabase) : UsersDa
             .findOne(SkUser::uuid eq userId, SkUser::workspaceId eq workspaceId)
     }
 
+    override suspend fun getUserWithEmailId(emailId: String, workspaceId: String): SkUser? {
+        return slackCloneDB.getCollection<SkUser>()
+            .findOne(SkUser::email eq emailId, SkUser::workspaceId eq workspaceId)
+    }
+
     override suspend fun updateUser(request: SkUser): SkUser? {
         slackCloneDB.getCollection<SkUser>()
             .updateOne(SkUser::uuid eq request.uuid, request)

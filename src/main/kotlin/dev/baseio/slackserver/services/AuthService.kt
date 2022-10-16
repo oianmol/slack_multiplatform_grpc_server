@@ -19,9 +19,9 @@ import kotlin.coroutines.CoroutineContext
 class AuthService(
     coroutineContext: CoroutineContext = Dispatchers.IO,
     private val authDataSource: AuthDataSource,
-    registerUserDelegate: RegisterUserDelegate
+    authenticationDelegate: AuthenticationDelegate
 ) :
-    AuthServiceGrpcKt.AuthServiceCoroutineImplBase(coroutineContext), RegisterUserDelegate by registerUserDelegate {
+    AuthServiceGrpcKt.AuthServiceCoroutineImplBase(coroutineContext), AuthenticationDelegate by authenticationDelegate {
 
     override suspend fun changePassword(request: SKAuthUser): Empty {
         return super.changePassword(request)
@@ -36,7 +36,7 @@ class AuthService(
     }
 
     override suspend fun register(request: SKAuthUser): SKAuthResult {
-        return registerUser(request, request.user.workspaceId)
+        return authenticateUser(request, request.user.workspaceId)
     }
 
     override suspend fun login(request: SKAuthUser): SKAuthResult {

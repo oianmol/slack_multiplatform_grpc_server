@@ -16,9 +16,9 @@ import kotlin.coroutines.CoroutineContext
 class WorkspaceService(
     coroutineContext: CoroutineContext = Dispatchers.IO,
     private val workspaceDataSource: WorkspaceDataSource,
-    private val registerUser: RegisterUserDelegate
+    private val registerUser: AuthenticationDelegate
 ) :
-    WorkspaceServiceGrpcKt.WorkspaceServiceCoroutineImplBase(coroutineContext), RegisterUserDelegate by registerUser {
+    WorkspaceServiceGrpcKt.WorkspaceServiceCoroutineImplBase(coroutineContext), AuthenticationDelegate by registerUser {
 
     override suspend fun updateWorkspace(request: SKWorkspace): SKWorkspace {
         val authData = AUTH_CONTEXT_KEY.get()
@@ -75,13 +75,13 @@ class WorkspaceService(
 
     override suspend fun saveWorkspace(request: SKCreateWorkspaceRequest): SKAuthResult {
         workspaceDataSource.findWorkspaceForName(request.workspace.name)?.let {
-            //if workspace exists then register the user!
-            return registerUser(request.user, workspaceId = it.uuid)
+            //if workspace exists then authenticateUser!
+            return authenticateUser(request.user, workspaceId = it.uuid)
         } ?: run {
             val savedWorkspace = workspaceDataSource
                 .saveWorkspace(request.workspace.toDBWorkspace())
                 ?.toGRPC() ?: throw StatusException(Status.ABORTED)
-            return registerUser(request.user, workspaceId = savedWorkspace.uuid)
+            return authenticateUser(request.user, workspaceId = savedWorkspace.uuid)
         }
     }
 
