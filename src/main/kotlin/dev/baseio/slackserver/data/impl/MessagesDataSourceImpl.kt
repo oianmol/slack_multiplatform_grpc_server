@@ -18,43 +18,45 @@ import org.litote.kmongo.match
 
 class MessagesDataSourceImpl(private val slackCloneDB: CoroutineDatabase) : MessagesDataSource {
 
-    override suspend fun getMessage(uuid: String, workspaceId: String): SkMessage? {
-        return slackCloneDB.getCollection<SkMessage>()
-            .findOne(SkMessage::uuid eq uuid, SkUser::workspaceId eq workspaceId)
-    }
+  override suspend fun getMessage(uuid: String, workspaceId: String): SkMessage? {
+    return messageCoroutineCollection()
+      .findOne(SkMessage::uuid eq uuid, SkUser::workspaceId eq workspaceId)
+  }
 
-    override suspend fun updateMessage(request: SkMessage): SkMessage? {
-        slackCloneDB.getCollection<SkMessage>()
-            .updateOne(SkMessage::uuid eq request.uuid, request)
-        return getMessage(request.uuid,request.workspaceId)
-    }
+  override suspend fun updateMessage(request: SkMessage): SkMessage? {
+    messageCoroutineCollection()
+      .updateOne(SkMessage::uuid eq request.uuid, request)
+    return getMessage(request.uuid, request.workspaceId)
+  }
 
-    override fun registerForChanges(request: SKWorkspaceChannelRequest): Flow<Pair<SkMessage?, SkMessage?>> {
-        val collection = slackCloneDB.getCollection<SkMessage>()
+  override fun registerForChanges(request: SKWorkspaceChannelRequest): Flow<Pair<SkMessage?, SkMessage?>> {
+    val collection = messageCoroutineCollection()
 
-        val pipeline: List<Bson> = listOf(
-            match(
-                Document.parse("{'fullDocument.workspaceId': '${request.workspaceId}'}"),
-                Document.parse("{'fullDocument.channelId': '${request.channelId}'}"),
-                Filters.`in`("operationType", OperationType.values().map { it.value }.toList())
-            )
-        )
+    val pipeline: List<Bson> = listOf(
+      match(
+        Document.parse("{'fullDocument.workspaceId': '${request.workspaceId}'}"),
+        Document.parse("{'fullDocument.receiver': '${request.channelId}'}"),
+        Filters.`in`("operationType", OperationType.values().map { it.value }.toList())
+      )
+    )
 
-        return collection
-            .watch<SkMessage>(pipeline).toFlow().map {
-                Pair(it.fullDocumentBeforeChange, it.fullDocument)
-            }
-    }
+    return collection
+      .watch<SkMessage>(pipeline).toFlow().map {
+        Pair(it.fullDocumentBeforeChange, it.fullDocument)
+      }
+  }
 
-    override suspend fun saveMessage(request: SkMessage): SkMessage {
-        val collection = slackCloneDB.getCollection<SkMessage>()
-        collection.insertOne(request)
-        return collection.findOne(SkMessage::uuid eq request.uuid) ?: throw StatusException(Status.CANCELLED)
-    }
+  override suspend fun saveMessage(request: SkMessage): SkMessage {
+    val collection = messageCoroutineCollection()
+    collection.insertOne(request)
+    return collection.findOne(SkMessage::uuid eq request.uuid) ?: throw StatusException(Status.CANCELLED)
+  }
 
-    override suspend fun getMessages(workspaceId: String, channelId: String): List<SkMessage> {
-        val collection = slackCloneDB.getCollection<SkMessage>()
-        return collection.find(SkMessage::workspaceId eq workspaceId, SkMessage::channelId eq channelId)
-            .toList()
-    }
+  override suspend fun getMessages(workspaceId: String, channelId: String): List<SkMessage> {
+    val collection = messageCoroutineCollection()
+    return collection.find(SkMessage::workspaceId eq workspaceId, SkMessage::channelId eq channelId)
+      .toList()
+  }
+
+  private fun messageCoroutineCollection() = slackCloneDB.getCollection<SkMessage>()
 }
