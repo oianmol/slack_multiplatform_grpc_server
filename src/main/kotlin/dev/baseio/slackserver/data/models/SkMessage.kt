@@ -11,5 +11,6 @@ data class SkMessage(
   val sender: String,
   val createdDate: Long,
   val modifiedDate: Long,
-  var senderInfo: SkUser? = null
+  var senderInfo: SkUser? = null,
+  var isDeleted: Boolean? = false
 )
