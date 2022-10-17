@@ -5,6 +5,7 @@ import dev.baseio.slackserver.data.sources.ChannelsDataSource
 import dev.baseio.slackserver.data.models.SkChannel
 import dev.baseio.slackserver.data.models.SkChannelMember
 import dev.baseio.slackserver.data.sources.ChannelMemberDataSource
+import dev.baseio.slackserver.services.interceptors.AUTH_CONTEXT_KEY
 import io.grpc.Status
 import io.grpc.StatusException
 import kotlinx.coroutines.Dispatchers
@@ -50,13 +51,34 @@ class ChannelService(
   }
 
   override suspend fun savePublicChannel(request: SKChannel): SKChannel {
-    return channelsDataSource.savePublicChannel(request.toDBChannel())?.toGRPC()
+    val authData = AUTH_CONTEXT_KEY.get()
+    return channelsDataSource.savePublicChannel(request.toDBChannel(), adminId = authData.userId)?.toGRPC()
       ?: throw StatusException(Status.NOT_FOUND)
   }
 
   override suspend fun saveDMChannel(request: SKDMChannel): SKDMChannel {
-    return channelsDataSource.saveDMChannel(request.toDBChannel())?.toGRPC()
-      ?: throw StatusException(Status.NOT_FOUND)
+    val authData = AUTH_CONTEXT_KEY.get()
+    request.uuid?.takeIf { it.isNotEmpty() }?.let {
+      return channelsDataSource.saveDMChannel(request.copy {
+        createdDate = System.currentTimeMillis()
+        modifiedDate = System.currentTimeMillis()
+        senderId = authData.userId
+      }.toDBChannel())?.toGRPC()
+        ?: throw StatusException(Status.NOT_FOUND)
+    } ?: run {
+      val previousChannel = channelsDataSource.checkIfDMChannelExists(authData.userId, request.receiverId)
+      val channel = previousChannel ?: run {
+        request.copy {
+          uuid = UUID.randomUUID().toString()
+          senderId = authData.userId
+          createdDate = System.currentTimeMillis()
+          modifiedDate = System.currentTimeMillis()
+        }.toDBChannel()
+      }
+      return channelsDataSource.saveDMChannel(channel)?.toGRPC()
+        ?: throw StatusException(Status.NOT_FOUND)
+    }
+
   }
 
   override fun registerChangeInChannels(request: SKChannelRequest): Flow<SKChannelChangeSnapshot> {
