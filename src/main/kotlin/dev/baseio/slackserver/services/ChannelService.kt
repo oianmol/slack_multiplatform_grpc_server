@@ -1,12 +1,10 @@
 package dev.baseio.slackserver.services
 
 import dev.baseio.slackdata.protos.*
-import dev.baseio.slackserver.data.impl.ChannelMemberDataSourceImpl
 import dev.baseio.slackserver.data.sources.ChannelsDataSource
 import dev.baseio.slackserver.data.models.SkChannel
 import dev.baseio.slackserver.data.models.SkChannelMember
 import dev.baseio.slackserver.data.sources.ChannelMemberDataSource
-import dev.baseio.slackserver.services.interceptors.AUTH_CONTEXT_KEY
 import io.grpc.Status
 import io.grpc.StatusException
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +20,11 @@ class ChannelService(
 ) :
   ChannelsServiceGrpcKt.ChannelsServiceCoroutineImplBase(coroutineContext) {
 
+  override suspend fun joinChannel(request: SKChannelMember): SKChannelMember {
+    channelMemberDataSource.addMembers(listOf(request.toDBMember()))
+    return request
+  }
+
   override suspend fun channelMembers(request: SKWorkspaceChannelRequest): SKChannelMembers {
     return channelMemberDataSource.getMembers(request.workspaceId, request.channelId).run {
       SKChannelMembers.newBuilder()
@@ -30,17 +33,33 @@ class ChannelService(
     }
   }
 
-  override suspend fun updateSKChannel(request: SKChannel): SKChannel {
-    return channelsDataSource.updateChannel(request.toDBChannel())?.toGRPC()
+  override suspend fun getAllChannels(request: SKChannelRequest): SKChannels {
+    return channelsDataSource.getAllChannels(request.workspaceId).run {
+      SKChannels.newBuilder()
+        .addAllChannels(this.map { it.toGRPC() })
+        .build()
+    }
+  }
+
+  override suspend fun getAllDMChannels(request: SKChannelRequest): SKDMChannels {
+    return channelsDataSource.getAllDMChannels(request.workspaceId).run {
+      SKDMChannels.newBuilder()
+        .addAllChannels(this.map { it.toGRPC() })
+        .build()
+    }
+  }
+
+  override suspend fun savePublicChannel(request: SKChannel): SKChannel {
+    return channelsDataSource.savePublicChannel(request.toDBChannel())?.toGRPC()
       ?: throw StatusException(Status.NOT_FOUND)
   }
 
-  override suspend fun saveChannel(request: SKChannel): SKChannel {
-    val clientId = AUTH_CONTEXT_KEY.get()
-    return channelsDataSource.insertChannel(request.toDBChannel()).toGRPC()
+  override suspend fun saveDMChannel(request: SKDMChannel): SKDMChannel {
+    return channelsDataSource.saveDMChannel(request.toDBChannel())?.toGRPC()
+      ?: throw StatusException(Status.NOT_FOUND)
   }
 
-  override fun registerChangeInChannel(request: SKChannelRequest): Flow<SKChannelChangeSnapshot> {
+  override fun registerChangeInChannels(request: SKChannelRequest): Flow<SKChannelChangeSnapshot> {
     return channelsDataSource.getChannelChangeStream(request.workspaceId).map { skChannel ->
       SKChannelChangeSnapshot.newBuilder()
         .apply {
@@ -55,13 +74,24 @@ class ChannelService(
     }
   }
 
-  override suspend fun getChannels(request: SKChannelRequest): SKChannels {
-    return channelsDataSource.getChannels(request.workspaceId).run {
-      SKChannels.newBuilder()
-        .addAllChannels(this@run.map { it.toGRPC() })
+  override fun registerChangeInDMChannels(request: SKChannelRequest): Flow<SKDMChannelChangeSnapshot> {
+    return channelsDataSource.getDMChannelChangeStream(request.workspaceId).map { skChannel ->
+      SKDMChannelChangeSnapshot.newBuilder()
+        .apply {
+          skChannel.first?.toGRPC()?.let { skMessage ->
+            previous = skMessage
+          }
+          skChannel.second?.toGRPC()?.let { skMessage ->
+            latest = skMessage
+          }
+        }
         .build()
     }
   }
+}
+
+private fun SKChannelMember.toDBMember(): SkChannelMember {
+  return SkChannelMember(this.uuid, this.workspaceId, this.channelId, this.memberId)
 }
 
 fun SkChannelMember.toGRPC(): SKChannelMember {
@@ -74,35 +104,53 @@ fun SkChannelMember.toGRPC(): SKChannelMember {
   }
 }
 
+fun SKDMChannel.toDBChannel(
+): SkChannel.SkDMChannel {
+  return SkChannel.SkDMChannel(
+    this.uuid,
+    this.workspaceId,
+    this.senderId,
+    this.receiverId,
+    createdDate,
+    modifiedDate,
+    isDeleted
+  )
+}
+
 fun SKChannel.toDBChannel(
   workspaceId: String = UUID.randomUUID().toString(),
   channelId: String = UUID.randomUUID().toString()
-): SkChannel {
-  return SkChannel(
+): SkChannel.SkGroupChannel {
+  return SkChannel.SkGroupChannel(
     this.uuid.takeIf { !it.isNullOrEmpty() } ?: channelId,
     this.workspaceId ?: workspaceId,
     this.name,
     createdDate,
     modifiedDate,
-    isMuted, isPrivate,
-    isStarred, isShareOutSide,
-    isOneToOne,
-    avatarUrl
+    avatarUrl,
+    isDeleted
   )
 }
 
-fun SkChannel.toGRPC(): SKChannel {
+fun SkChannel.SkGroupChannel.toGRPC(): SKChannel {
   return SKChannel.newBuilder()
     .setUuid(this.uuid)
     .setAvatarUrl(this.avatarUrl ?: "")
     .setName(this.name)
     .setCreatedDate(this.createdDate)
-    .setIsMuted(this.isMuted)
-    .setIsPrivate(this.isPrivate)
-    .setIsStarred(this.isStarred)
-    .setIsOneToOne(this.isOneToOne)
-    .setIsShareOutSide(this.isShareOutSide)
     .setWorkspaceId(this.workspaceId)
     .setModifiedDate(this.modifiedDate)
+    .build()
+}
+
+fun SkChannel.SkDMChannel.toGRPC(): SKDMChannel {
+  return SKDMChannel.newBuilder()
+    .setUuid(this.uuid)
+    .setCreatedDate(this.createdDate)
+    .setModifiedDate(this.modifiedDate)
+    .setIsDeleted(this.deleted)
+    .setReceiverId(this.receiverId)
+    .setSenderId(this.senderId)
+    .setWorkspaceId(this.workspaceId)
     .build()
 }

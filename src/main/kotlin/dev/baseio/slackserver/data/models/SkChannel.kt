@@ -1,20 +1,28 @@
 package dev.baseio.slackserver.data.models
 
 import java.util.UUID
+sealed class SkChannel(val workspaceId: String, val channelId: String) {
+  data class SkDMChannel(
+    val uuid: String,
+    val workId: String,
+    var senderId: String,
+    var receiverId: String,
+    val createdDate: Long = System.currentTimeMillis(),
+    val modifiedDate: Long = System.currentTimeMillis(),
+    val deleted: Boolean
+  ) : SkChannel(workId, uuid)
 
-data class SkChannel(
-  val uuid: String,
-  val workspaceId: String,
-  val name: String? = null,
-  val createdDate: Long,
-  val modifiedDate: Long,
-  val isMuted: Boolean = false,
-  val isPrivate: Boolean = false,
-  val isStarred: Boolean = false,
-  val isShareOutSide: Boolean = false,
-  val isOneToOne: Boolean = false,
-  val avatarUrl: String?
-)
+  data class SkGroupChannel(
+    val uuid: String,
+    val workId: String,
+    var name: String,
+    val createdDate: Long = System.currentTimeMillis(),
+    val modifiedDate: Long = System.currentTimeMillis(),
+    var avatarUrl: String?,
+    val deleted: Boolean
+  ) : SkChannel(workId, uuid)
+}
+
 
 data class SkChannelMember(
   val uuid: String = UUID.randomUUID().toString(),

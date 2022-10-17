@@ -7,10 +7,11 @@ import io.grpc.ServerBuilder
 
 fun main() {
   val workspaceDataSource = WorkspaceDataSourceImpl(Database.slackDB)
-  val channelMemberDataSource = ChannelMemberDataSourceImpl(Database.slackDB)
-  val channelsDataSource = ChannelsDataSourceImpl(Database.slackDB, channelMemberDataSource)
-  val messagesDataSource = MessagesDataSourceImpl(Database.slackDB)
   val usersDataSource: UsersDataSource = UsersDataSourceImpl(Database.slackDB)
+
+  val channelMemberDataSource = ChannelMemberDataSourceImpl(Database.slackDB)
+  val channelsDataSource = ChannelsDataSourceImpl(Database.slackDB)
+  val messagesDataSource = MessagesDataSourceImpl(Database.slackDB)
   val authDataSource = AuthDataSourceImpl(Database.slackDB)
 
   val authenticationDelegate: AuthenticationDelegate = AuthenticationDelegateImpl(authDataSource, usersDataSource)
@@ -28,12 +29,15 @@ fun main() {
         registerUser = authenticationDelegate
       )
     )
-    .addService(ChannelService(channelsDataSource = channelsDataSource,channelMemberDataSource=channelMemberDataSource))
+    .addService(
+      ChannelService(
+        channelsDataSource = channelsDataSource,
+        channelMemberDataSource = channelMemberDataSource
+      )
+    )
     .addService(
       MessagingService(
         messagesDataSource = messagesDataSource,
-        usersDataSource = usersDataSource,
-        channelsDataSource = channelsDataSource
       )
     )
     .addService(UserService(usersDataSource = usersDataSource))
