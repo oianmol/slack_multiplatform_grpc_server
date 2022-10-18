@@ -26,7 +26,7 @@ fun main() {
     .addService(
       WorkspaceService(
         workspaceDataSource = workspaceDataSource,
-        registerUser = authenticationDelegate
+        authDelegate = authenticationDelegate
       )
     )
     .addService(

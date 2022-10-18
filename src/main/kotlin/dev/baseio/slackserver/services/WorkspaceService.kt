@@ -16,9 +16,9 @@ import kotlin.coroutines.CoroutineContext
 class WorkspaceService(
     coroutineContext: CoroutineContext = Dispatchers.IO,
     private val workspaceDataSource: WorkspaceDataSource,
-    private val registerUser: AuthenticationDelegate
+    private val authDelegate: AuthenticationDelegate
 ) :
-    WorkspaceServiceGrpcKt.WorkspaceServiceCoroutineImplBase(coroutineContext), AuthenticationDelegate by registerUser {
+    WorkspaceServiceGrpcKt.WorkspaceServiceCoroutineImplBase(coroutineContext), AuthenticationDelegate by authDelegate {
 
     override suspend fun updateWorkspace(request: SKWorkspace): SKWorkspace {
         val authData = AUTH_CONTEXT_KEY.get()
@@ -47,11 +47,11 @@ class WorkspaceService(
     override suspend fun findWorkspaceForName(request: SKFindWorkspacesRequest): SKWorkspace {
         return workspaceDataSource.findWorkspaceForName(request.name)?.let { workspace ->
             sKWorkspace {
-                uuid = workspace.uuid ?: ""
+                uuid = workspace.uuid
                 modifiedTime = workspace.modifiedTime
                 picUrl = workspace.picUrl ?: ""
-                domain = workspace.domain ?: ""
-                name = workspace.name ?: ""
+                domain = workspace.domain
+                name = workspace.name
             }
         } ?: kotlin.run {
             throw StatusException(Status.NOT_FOUND)
@@ -86,9 +86,13 @@ class WorkspaceService(
     }
 
     override suspend fun getWorkspaces(request: Empty): SKWorkspaces {
-        val workspaces = workspaceDataSource.getWorkspaces()
+        val authData = AUTH_CONTEXT_KEY.get()
+        val workspaces = mutableListOf<SKWorkspace>()
+        workspaceDataSource.getWorkspace(authData.workspaceId)?.let {
+            workspaces.add(it.toGRPC())
+        }
         return SKWorkspaces.newBuilder()
-            .addAllWorkspaces(workspaces.map { it.toGRPC() })
+            .addAllWorkspaces(workspaces)
             .build()
     }
 }
