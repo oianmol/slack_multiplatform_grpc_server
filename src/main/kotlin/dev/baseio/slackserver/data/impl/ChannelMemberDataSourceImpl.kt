@@ -7,6 +7,17 @@ import org.litote.kmongo.coroutine.CoroutineDatabase
 import org.litote.kmongo.eq
 
 class ChannelMemberDataSourceImpl(private val database: CoroutineDatabase) : ChannelMemberDataSource {
+
+  override suspend fun getChannelIdsForUserAndWorkspace(userId: String, workspaceId: String): List<String> {
+    return database.getCollection<SkChannelMember>()
+      .find(
+        SkChannelMember::workspaceId eq workspaceId,
+        SkChannelMember::memberId eq userId
+      ).toList().map {
+        it.channelId
+      }
+  }
+
   override suspend fun isChannelExistFor(sender: String, receiver: String): SkChannel? {
     val possible1 = database.getCollection<SkChannelMember>()
       .findOne(SkChannelMember::channelId eq sender + receiver)
@@ -36,8 +47,13 @@ class ChannelMemberDataSourceImpl(private val database: CoroutineDatabase) : Cha
 
   override suspend fun addMembers(listOf: List<SkChannelMember>) {
     listOf.forEach {
-      database.getCollection<SkChannelMember>()
-        .insertOne(SkChannelMember(channelId = it.channelId, memberId = it.memberId, workspaceId = it.workspaceId))
+      val memberCollection = database.getCollection<SkChannelMember>()
+      memberCollection.findOne(
+        SkChannelMember::channelId eq it.channelId, SkChannelMember::memberId eq it.memberId
+      ) ?: run {
+        database.getCollection<SkChannelMember>()
+          .insertOne(SkChannelMember(channelId = it.channelId, memberId = it.memberId, workspaceId = it.workspaceId))
+      }
     }
   }
 

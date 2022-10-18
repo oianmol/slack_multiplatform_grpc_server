@@ -35,7 +35,8 @@ class ChannelService(
   }
 
   override suspend fun getAllChannels(request: SKChannelRequest): SKChannels {
-    return channelsDataSource.getAllChannels(request.workspaceId).run {
+    val userData = AUTH_CONTEXT_KEY.get()
+    return channelsDataSource.getAllChannels(request.workspaceId, userData.userId).run {
       SKChannels.newBuilder()
         .addAllChannels(this.map { it.toGRPC() })
         .build()
@@ -43,7 +44,8 @@ class ChannelService(
   }
 
   override suspend fun getAllDMChannels(request: SKChannelRequest): SKDMChannels {
-    return channelsDataSource.getAllDMChannels(request.workspaceId).run {
+    val userData = AUTH_CONTEXT_KEY.get()
+    return channelsDataSource.getAllDMChannels(request.workspaceId, userData.userId).run {
       SKDMChannels.newBuilder()
         .addAllChannels(this.map { it.toGRPC() })
         .build()
@@ -67,16 +69,20 @@ class ChannelService(
         ?: throw StatusException(Status.NOT_FOUND)
     } ?: run {
       val previousChannel = channelsDataSource.checkIfDMChannelExists(authData.userId, request.receiverId)
-      val channel = previousChannel ?: run {
-        request.copy {
-          uuid = UUID.randomUUID().toString()
-          senderId = authData.userId
-          createdDate = System.currentTimeMillis()
-          modifiedDate = System.currentTimeMillis()
-        }.toDBChannel()
+      previousChannel?.let {
+        return it.toGRPC()
+      } ?: run {
+        val channel = previousChannel ?: run {
+          request.copy {
+            uuid = UUID.randomUUID().toString()
+            senderId = authData.userId
+            createdDate = System.currentTimeMillis()
+            modifiedDate = System.currentTimeMillis()
+          }.toDBChannel()
+        }
+        return channelsDataSource.saveDMChannel(channel)?.toGRPC()
+          ?: throw StatusException(Status.NOT_FOUND)
       }
-      return channelsDataSource.saveDMChannel(channel)?.toGRPC()
-        ?: throw StatusException(Status.NOT_FOUND)
     }
 
   }

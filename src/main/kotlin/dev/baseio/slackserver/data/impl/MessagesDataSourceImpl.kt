@@ -32,13 +32,23 @@ class MessagesDataSourceImpl(private val slackCloneDB: CoroutineDatabase) : Mess
   override fun registerForChanges(request: SKWorkspaceChannelRequest): Flow<Pair<SkMessage?, SkMessage?>> {
     val collection = messageCoroutineCollection()
 
-    val pipeline: List<Bson> = listOf(
-      match(
-        Document.parse("{'fullDocument.workspaceId': '${request.workspaceId}'}"),
-        Document.parse("{'fullDocument.receiver': '${request.channelId}'}"),
-        Filters.`in`("operationType", OperationType.values().map { it.value }.toList())
+    val pipeline: List<Bson> = request.channelId.takeIf { !it.isNullOrEmpty() }?.let {
+      Document.parse("{'fullDocument.channelId': '${request.channelId}'}")
+      listOf(
+        match(
+          Document.parse("{'fullDocument.workspaceId': '${request.workspaceId}'}"),
+          Document.parse("{'fullDocument.channelId': '${request.channelId}'}"),
+          Filters.`in`("operationType", OperationType.values().map { it.value }.toList())
+        )
       )
-    )
+    } ?: kotlin.run {
+      listOf(
+        match(
+          Document.parse("{'fullDocument.workspaceId': '${request.workspaceId}'}"),
+          Filters.`in`("operationType", OperationType.values().map { it.value }.toList())
+        )
+      )
+    }
 
     return collection
       .watch<SkMessage>(pipeline).toFlow().map {

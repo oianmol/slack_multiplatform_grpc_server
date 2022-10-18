@@ -5,47 +5,41 @@ import com.mongodb.client.model.changestream.OperationType
 import dev.baseio.slackserver.data.sources.ChannelsDataSource
 import dev.baseio.slackserver.data.models.SkChannel
 import dev.baseio.slackserver.data.models.SkChannelMember
+import dev.baseio.slackserver.data.sources.ChannelMemberDataSource
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.mapNotNull
 import org.bson.Document
 import org.bson.conversions.Bson
 import org.litote.kmongo.coroutine.CoroutineDatabase
-import org.litote.kmongo.coroutine.insertOne
 import org.litote.kmongo.eq
+import org.litote.kmongo.`in`
 import org.litote.kmongo.match
 
 class ChannelsDataSourceImpl(
-  private val slackCloneDB: CoroutineDatabase
+  private val slackCloneDB: CoroutineDatabase,
+  private val channelMemberDataSource: ChannelMemberDataSource
 ) : ChannelsDataSource {
 
-  override suspend fun getAllChannels(workspaceId: String): List<SkChannel.SkGroupChannel> {
-    return slackCloneDB.getCollection<SkChannel.SkGroupChannel>().find(
-      SkChannel.SkGroupChannel::workspaceId eq workspaceId
-    ).toList()
+  override suspend fun getAllChannels(workspaceId: String, userId: String): List<SkChannel.SkGroupChannel> {
+    val userChannels = channelMemberDataSource.getChannelIdsForUserAndWorkspace(userId, workspaceId)
+    return slackCloneDB.getCollection<SkChannel.SkGroupChannel>()
+      .find(SkChannel.SkGroupChannel::uuid `in` userChannels)
+      .toList()
   }
 
-  override suspend fun getAllDMChannels(workspaceId: String): List<SkChannel.SkDMChannel> {
-    return slackCloneDB.getCollection<SkChannel.SkDMChannel>().find(
-      SkChannel.SkDMChannel::workspaceId eq workspaceId
-    ).toList()
+  override suspend fun getAllDMChannels(workspaceId: String, userId: String): List<SkChannel.SkDMChannel> {
+    val userChannels = channelMemberDataSource.getChannelIdsForUserAndWorkspace(userId, workspaceId)
+    return slackCloneDB.getCollection<SkChannel.SkDMChannel>()
+      .find(SkChannel.SkDMChannel::uuid `in` userChannels)
+      .toList()
   }
 
   override suspend fun checkIfDMChannelExists(userId: String, receiverId: String?): SkChannel.SkDMChannel? {
     return slackCloneDB.getCollection<SkChannel.SkDMChannel>()
-      .findOne(SkChannel.SkDMChannel::senderId eq userId, SkChannel.SkDMChannel::senderId eq receiverId)
+      .findOne(SkChannel.SkDMChannel::senderId eq userId, SkChannel.SkDMChannel::receiverId eq receiverId)
       ?: slackCloneDB.getCollection<SkChannel.SkDMChannel>()
-        .findOne(SkChannel.SkDMChannel::senderId eq receiverId, SkChannel.SkDMChannel::senderId eq userId)
-  }
-
-  override suspend fun getChannel(uuid: String, workspaceId: String): SkChannel.SkGroupChannel? {
-    return slackCloneDB.getCollection<SkChannel.SkGroupChannel>()
-      .findOne(SkChannel.SkGroupChannel::uuid eq uuid, SkChannel.SkGroupChannel::workspaceId eq workspaceId)
-  }
-
-  override suspend fun getDMChannel(uuid: String, workspaceId: String): SkChannel.SkDMChannel? {
-    return slackCloneDB.getCollection<SkChannel.SkDMChannel>()
-      .findOne(SkChannel.SkDMChannel::uuid eq uuid, SkChannel.SkDMChannel::workspaceId eq workspaceId)
-
+        .findOne(SkChannel.SkDMChannel::senderId eq receiverId, SkChannel.SkDMChannel::receiverId eq userId)
   }
 
   override suspend fun savePublicChannel(

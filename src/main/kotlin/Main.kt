@@ -10,7 +10,7 @@ fun main() {
   val usersDataSource: UsersDataSource = UsersDataSourceImpl(Database.slackDB)
 
   val channelMemberDataSource = ChannelMemberDataSourceImpl(Database.slackDB)
-  val channelsDataSource = ChannelsDataSourceImpl(Database.slackDB)
+  val channelsDataSource = ChannelsDataSourceImpl(Database.slackDB, channelMemberDataSource)
   val messagesDataSource = MessagesDataSourceImpl(Database.slackDB)
   val authDataSource = AuthDataSourceImpl(Database.slackDB)
 
