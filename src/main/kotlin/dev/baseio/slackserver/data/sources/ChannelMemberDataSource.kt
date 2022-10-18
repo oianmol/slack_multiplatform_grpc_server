@@ -8,4 +8,5 @@ interface ChannelMemberDataSource {
   suspend fun addMembers(listOf: List<SkChannelMember>)
   suspend fun getMembers(workspaceId: String, channelId: String): List<SkChannelMember>
   suspend fun getChannelIdsForUserAndWorkspace(userId: String, workspaceId: String): List<String>
+  suspend fun isMember(userId: String, workspaceId: String, channelId: String): Boolean
 }

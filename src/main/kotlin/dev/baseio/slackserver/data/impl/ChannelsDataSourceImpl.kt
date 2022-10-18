@@ -1,6 +1,7 @@
 package dev.baseio.slackserver.data.impl
 
 import com.mongodb.client.model.Filters
+import com.mongodb.client.model.UpdateOptions
 import com.mongodb.client.model.changestream.OperationType
 import dev.baseio.slackserver.data.sources.ChannelsDataSource
 import dev.baseio.slackserver.data.models.SkChannel
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import org.bson.Document
 import org.bson.conversions.Bson
 import org.litote.kmongo.coroutine.CoroutineDatabase
+import org.litote.kmongo.coroutine.updateOne
 import org.litote.kmongo.eq
 import org.litote.kmongo.`in`
 import org.litote.kmongo.match
@@ -40,6 +42,11 @@ class ChannelsDataSourceImpl(
       .findOne(SkChannel.SkDMChannel::senderId eq userId, SkChannel.SkDMChannel::receiverId eq receiverId)
       ?: slackCloneDB.getCollection<SkChannel.SkDMChannel>()
         .findOne(SkChannel.SkDMChannel::senderId eq receiverId, SkChannel.SkDMChannel::receiverId eq userId)
+  }
+
+  override suspend fun getChannelByName(channelId: String, workspaceId: String): SkChannel.SkGroupChannel? {
+    return slackCloneDB.getCollection<SkChannel.SkGroupChannel>()
+      .findOne(SkChannel.SkGroupChannel::name eq channelId, SkChannel.SkGroupChannel::workspaceId eq workspaceId)
   }
 
   override suspend fun savePublicChannel(
@@ -86,7 +93,7 @@ class ChannelsDataSourceImpl(
 
     val pipeline: List<Bson> = listOf(
       match(
-        Document.parse("{'fullDocument.workspaceId': '$workspaceId'}"),
+        Document.parse("{'fullDocument.workId': '$workspaceId'}"),
         Filters.`in`("operationType", OperationType.values().map { it.value }.toList())
       )
     )
@@ -98,17 +105,38 @@ class ChannelsDataSourceImpl(
   }
 
   override fun getChannelChangeStream(workspaceId: String): Flow<Pair<SkChannel.SkGroupChannel?, SkChannel.SkGroupChannel?>> {
-    val collection = slackCloneDB.getCollection<SkChannel.SkGroupChannel>()
+    val flowGroupChannel = slackCloneDB.getCollection<SkChannel.SkGroupChannel>()
+      .watch<SkChannel.SkGroupChannel>(
+        listOf(
+          match(
+            Document.parse("{'fullDocument.workId': '$workspaceId'}"),
+            Filters.`in`("operationType", OperationType.values().map { it.value }.toList())
+          )
+        )
+      ).toFlow()
 
-    val pipeline: List<Bson> = listOf(
-      match(
-        Document.parse("{'fullDocument.workspaceId': '$workspaceId'}"),
-        Filters.`in`("operationType", OperationType.values().map { it.value }.toList())
-      )
-    )
-    return collection
-      .watch<SkChannel.SkGroupChannel>(pipeline).toFlow().mapNotNull {
-        Pair(it.fullDocumentBeforeChange, it.fullDocument)
-      }
+    return flowGroupChannel.mapNotNull {
+      Pair(it.fullDocumentBeforeChange, it.fullDocument)
+    }
+  }
+
+  override fun getChannelMemberChangeStream(
+    workspaceId: String,
+    memberId: String
+  ): Flow<Pair<SkChannelMember?, SkChannelMember?>> {
+    val flowGroupChannel = slackCloneDB.getCollection<SkChannelMember>()
+      .watch<SkChannelMember>(
+        listOf(
+          match(
+            Document.parse("{'fullDocument.workspaceId': '$workspaceId'}"),
+            Document.parse("{'fullDocument.memberId': '$memberId'}"),
+            Filters.`in`("operationType", OperationType.values().map { it.value }.toList())
+          )
+        )
+      ).toFlow()
+
+    return flowGroupChannel.mapNotNull {
+      Pair(it.fullDocumentBeforeChange, it.fullDocument)
+    }
   }
 }

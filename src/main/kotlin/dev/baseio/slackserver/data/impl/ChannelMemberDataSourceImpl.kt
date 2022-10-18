@@ -8,6 +8,15 @@ import org.litote.kmongo.eq
 
 class ChannelMemberDataSourceImpl(private val database: CoroutineDatabase) : ChannelMemberDataSource {
 
+  override suspend fun isMember(userId: String, workspaceId: String, channelId: String): Boolean {
+    return database.getCollection<SkChannelMember>()
+      .find(
+        SkChannelMember::workspaceId eq workspaceId,
+        SkChannelMember::channelId eq channelId,
+        SkChannelMember::memberId eq userId
+      ).toList().isNotEmpty()
+  }
+
   override suspend fun getChannelIdsForUserAndWorkspace(userId: String, workspaceId: String): List<String> {
     return database.getCollection<SkChannelMember>()
       .find(

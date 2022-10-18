@@ -1,6 +1,7 @@
 package dev.baseio.slackserver.data.sources
 
 import dev.baseio.slackserver.data.models.SkChannel
+import dev.baseio.slackserver.data.models.SkChannelMember
 import kotlinx.coroutines.flow.Flow
 
 interface ChannelsDataSource {
@@ -11,5 +12,10 @@ interface ChannelsDataSource {
   suspend fun getAllChannels(workspaceId: String, userId: String): List<SkChannel.SkGroupChannel>
   suspend fun getAllDMChannels(workspaceId: String, userId: String): List<SkChannel.SkDMChannel>
   suspend fun checkIfDMChannelExists(userId: String, receiverId: String?):SkChannel.SkDMChannel?
+  suspend fun getChannelByName(channelId: String, workspaceId: String): SkChannel.SkGroupChannel?
+  fun getChannelMemberChangeStream(
+    workspaceId: String,
+    memberId: String
+  ): Flow<Pair<SkChannelMember?, SkChannelMember?>>
 }
 

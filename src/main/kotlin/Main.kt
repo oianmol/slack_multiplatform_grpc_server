@@ -32,7 +32,8 @@ fun main() {
     .addService(
       ChannelService(
         channelsDataSource = channelsDataSource,
-        channelMemberDataSource = channelMemberDataSource
+        channelMemberDataSource = channelMemberDataSource,
+        usersDataSource = usersDataSource
       )
     )
     .addService(

@@ -5,6 +5,7 @@ import dev.baseio.slackserver.data.sources.ChannelsDataSource
 import dev.baseio.slackserver.data.models.SkChannel
 import dev.baseio.slackserver.data.models.SkChannelMember
 import dev.baseio.slackserver.data.sources.ChannelMemberDataSource
+import dev.baseio.slackserver.data.sources.UsersDataSource
 import dev.baseio.slackserver.services.interceptors.AUTH_CONTEXT_KEY
 import io.grpc.Status
 import io.grpc.StatusException
@@ -17,9 +18,32 @@ import kotlin.coroutines.CoroutineContext
 class ChannelService(
   coroutineContext: CoroutineContext = Dispatchers.IO,
   private val channelsDataSource: ChannelsDataSource,
-  private val channelMemberDataSource: ChannelMemberDataSource
+  private val channelMemberDataSource: ChannelMemberDataSource,
+  private val usersDataSource: UsersDataSource
 ) :
   ChannelsServiceGrpcKt.ChannelsServiceCoroutineImplBase(coroutineContext) {
+
+  override suspend fun inviteUserToChannel(request: SKInviteUserChannel): SKChannelMembers {
+    val userData = AUTH_CONTEXT_KEY.get()
+    val user = usersDataSource.getUserWithUsername(request.userId, userData.workspaceId)
+    val channel = channelsDataSource.getChannelByName(request.channelId, userData.workspaceId)
+    user?.let { user ->
+      channel?.let { channel ->
+        joinChannel(sKChannelMember {
+          this.channelId = channel.channelId
+          this.memberId = user.uuid
+          this.workspaceId = userData.workspaceId
+        })
+        return channelMembers(sKWorkspaceChannelRequest {
+          this.channelId = channel.channelId
+          this.workspaceId = userData.workspaceId
+        })
+      }
+
+    } ?: run {
+      throw StatusException(Status.NOT_FOUND)
+    }
+  }
 
   override suspend fun joinChannel(request: SKChannelMember): SKChannelMember {
     channelMemberDataSource.addMembers(listOf(request.toDBMember()))
@@ -69,13 +93,15 @@ class ChannelService(
         ?: throw StatusException(Status.NOT_FOUND)
     } ?: run {
       if (authData.userId == request.receiverId) {
-        return channelsDataSource.saveDMChannel(request.copy {
-          uuid = UUID.randomUUID().toString()
-          senderId = authData.userId
-          receiverId = authData.userId
-          createdDate = System.currentTimeMillis()
-          modifiedDate = System.currentTimeMillis()
-        }.toDBChannel(),)?.toGRPC()
+        return channelsDataSource.saveDMChannel(
+          request.copy {
+            uuid = UUID.randomUUID().toString()
+            senderId = authData.userId
+            receiverId = authData.userId
+            createdDate = System.currentTimeMillis()
+            modifiedDate = System.currentTimeMillis()
+          }.toDBChannel(),
+        )?.toGRPC()
           ?: throw StatusException(Status.NOT_FOUND)
       }
       val previousChannel = channelsDataSource.checkIfDMChannelExists(authData.userId, request.receiverId)
@@ -97,15 +123,37 @@ class ChannelService(
 
   }
 
+  override fun registerChangeInChannelMembers(request: SKChannelMember): Flow<SKChannelMemberChangeSnapshot> {
+    return channelsDataSource.getChannelMemberChangeStream(request.workspaceId, request.memberId).map { skChannel ->
+      SKChannelMemberChangeSnapshot.newBuilder()
+        .apply {
+          skChannel.first?.toGRPC()?.let { skChannel1 ->
+            previous = skChannel1
+          }
+          skChannel.second?.toGRPC()?.let { skChannel1 ->
+            latest = skChannel1
+          }
+        }
+        .build()
+    }
+  }
+
   override fun registerChangeInChannels(request: SKChannelRequest): Flow<SKChannelChangeSnapshot> {
+    val authData = AUTH_CONTEXT_KEY.get()
     return channelsDataSource.getChannelChangeStream(request.workspaceId).map { skChannel ->
       SKChannelChangeSnapshot.newBuilder()
         .apply {
-          skChannel.first?.toGRPC()?.let { skMessage ->
-            previous = skMessage
+          skChannel.first?.toGRPC()?.let { skChannel1 ->
+            val isMember = channelMemberDataSource.isMember(authData.userId, request.workspaceId, skChannel1.uuid)
+            if (isMember) {
+              previous = skChannel1
+            }
           }
-          skChannel.second?.toGRPC()?.let { skMessage ->
-            latest = skMessage
+          skChannel.second?.toGRPC()?.let { skChannel1 ->
+            val isMember = channelMemberDataSource.isMember(authData.userId, request.workspaceId, skChannel1.uuid)
+            if (isMember) {
+              latest = skChannel1
+            }
           }
         }
         .build()
@@ -129,8 +177,10 @@ class ChannelService(
 }
 
 private fun SKChannelMember.toDBMember(): SkChannelMember {
-  return SkChannelMember( this.workspaceId, this.channelId, this.memberId).apply {
-    this.uuid = this@toDBMember.uuid
+  return SkChannelMember(this.workspaceId, this.channelId, this.memberId).apply {
+    this@toDBMember.uuid?.takeIf { it.isNotEmpty() }?.let {
+      this.uuid = this@toDBMember.uuid
+    }
   }
 }
 
