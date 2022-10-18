@@ -68,6 +68,16 @@ class ChannelService(
       }.toDBChannel())?.toGRPC()
         ?: throw StatusException(Status.NOT_FOUND)
     } ?: run {
+      if (authData.userId == request.receiverId) {
+        return channelsDataSource.saveDMChannel(request.copy {
+          uuid = UUID.randomUUID().toString()
+          senderId = authData.userId
+          receiverId = authData.userId
+          createdDate = System.currentTimeMillis()
+          modifiedDate = System.currentTimeMillis()
+        }.toDBChannel(),)?.toGRPC()
+          ?: throw StatusException(Status.NOT_FOUND)
+      }
       val previousChannel = channelsDataSource.checkIfDMChannelExists(authData.userId, request.receiverId)
       previousChannel?.let {
         return it.toGRPC()
@@ -119,7 +129,9 @@ class ChannelService(
 }
 
 private fun SKChannelMember.toDBMember(): SkChannelMember {
-  return SkChannelMember(this.uuid, this.workspaceId, this.channelId, this.memberId)
+  return SkChannelMember( this.workspaceId, this.channelId, this.memberId).apply {
+    this.uuid = this@toDBMember.uuid
+  }
 }
 
 fun SkChannelMember.toGRPC(): SKChannelMember {

@@ -1,6 +1,7 @@
 package dev.baseio.slackserver.data.models
 
-import java.util.UUID
+import java.util.*
+
 sealed class SkChannel(val workspaceId: String, val channelId: String) {
   data class SkDMChannel(
     val uuid: String,
@@ -25,8 +26,9 @@ sealed class SkChannel(val workspaceId: String, val channelId: String) {
 
 
 data class SkChannelMember(
-  val uuid: String = UUID.randomUUID().toString(),
   val workspaceId: String,
   val channelId: String,
   val memberId: String
-)
+) {
+  var uuid: String = UUID.randomUUID().toString()
+}

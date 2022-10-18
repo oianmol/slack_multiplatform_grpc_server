@@ -65,7 +65,7 @@ class ChannelsDataSourceImpl(
       .insertOne(request)
     slackCloneDB.getCollection<SkChannelMember>()
       .insertMany(
-        mutableListOf(
+        hashSetOf(
           SkChannelMember(
             workspaceId = request.workspaceId,
             channelId = request.channelId,
@@ -75,7 +75,7 @@ class ChannelsDataSourceImpl(
             channelId = request.channelId,
             memberId = request.receiverId
           )
-        )
+        ).toMutableList()
       )
     return slackCloneDB.getCollection<SkChannel.SkDMChannel>()
       .findOne(SkChannel.SkDMChannel::uuid eq request.uuid)
