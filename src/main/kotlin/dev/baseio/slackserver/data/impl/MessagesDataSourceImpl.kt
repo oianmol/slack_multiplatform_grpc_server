@@ -62,9 +62,12 @@ class MessagesDataSourceImpl(private val slackCloneDB: CoroutineDatabase) : Mess
     return collection.findOne(SkMessage::uuid eq request.uuid) ?: throw StatusException(Status.CANCELLED)
   }
 
-  override suspend fun getMessages(workspaceId: String, channelId: String): List<SkMessage> {
+  override suspend fun getMessages(workspaceId: String, channelId: String, limit: Int, offset: Int): List<SkMessage> {
     val collection = messageCoroutineCollection()
     return collection.find(SkMessage::workspaceId eq workspaceId, SkMessage::channelId eq channelId)
+      .descendingSort(SkMessage::createdDate)
+      .skip(offset)
+      .limit(limit)
       .toList()
   }
 

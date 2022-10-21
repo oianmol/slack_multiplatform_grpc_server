@@ -3,7 +3,6 @@ package dev.baseio.slackserver.services
 import dev.baseio.slackdata.protos.*
 import dev.baseio.slackserver.data.sources.MessagesDataSource
 import dev.baseio.slackserver.data.models.SkMessage
-import dev.baseio.slackserver.data.sources.UsersDataSource
 import io.grpc.Status
 import io.grpc.StatusException
 import kotlinx.coroutines.Dispatchers
@@ -48,7 +47,12 @@ class MessagingService(
   }
 
   override suspend fun getMessages(request: SKWorkspaceChannelRequest): SKMessages {
-    val messages = messagesDataSource.getMessages(workspaceId = request.workspaceId, channelId = request.channelId)
+    val messages = messagesDataSource.getMessages(
+      workspaceId = request.workspaceId,
+      channelId = request.channelId,
+      request.paged.limit,
+      request.paged.offset
+    )
       .map { skMessage ->
         skMessage.toGrpc()
       }
