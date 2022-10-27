@@ -11,6 +11,7 @@ import io.grpc.Status
 import io.grpc.StatusException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import org.litote.kmongo.coroutine.CoroutineDatabase
@@ -44,8 +45,9 @@ class QrCodeService(
                     })
                 }
             }
-            while (!isClosedForSend) {
-                // don't close //TODO add a check for 1 min internal and recreate the QR!
+            awaitClose {
+                qrCodeGenerator.inMemoryQrCodes[data]?.first?.deleteIfExists()
+                qrCodeGenerator.inMemoryQrCodes.remove(data)
             }
         }
     }
