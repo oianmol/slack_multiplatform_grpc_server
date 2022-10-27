@@ -26,8 +26,10 @@ class QrCodeService(
     override suspend fun generateQRCode(request: SKQrCodeGenerator): SKQrCodeResponse {
         with(generateImage()) {
             val ins = inputStream(StandardOpenOption.READ)
+            val bytes = ins.readAllBytes()
+            val intBytes = bytes.map { it.toInt() }
             return sKQrCodeResponse {
-                this.bitmap = ByteString.copyFrom(ins.readAllBytes())
+                this.byteArray.addAll(intBytes.map { sKByteArrayElement { this.byte = it } })
                 this.totalSize = fileSize()
             }.also {
                 ins.close()
