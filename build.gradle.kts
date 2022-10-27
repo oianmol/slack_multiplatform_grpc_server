@@ -16,6 +16,9 @@ dependencies {
   // grpc
   implementation("io.grpc:grpc-netty-shaded:1.49.2")
   implementation("dev.baseio.slackdatalib:slack-multiplatform-generate-protos:1.0.0")
+// https://mvnrepository.com/artifact/com.google.zxing/core
+  implementation("com.google.zxing:core:3.5.0")
+  implementation("com.google.zxing:javase:3.5.0")
 
   //mongodb
   implementation("org.litote.kmongo:kmongo:4.7.1")

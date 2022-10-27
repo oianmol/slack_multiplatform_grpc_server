@@ -1,3 +1,4 @@
+import dev.baseio.slackdata.protos.QrCodeServiceGrpc
 import dev.baseio.slackserver.data.database.Database
 import dev.baseio.slackserver.data.impl.*
 import dev.baseio.slackserver.data.sources.UsersDataSource
@@ -23,6 +24,7 @@ fun main() {
         authenticationDelegate = authenticationDelegate
       )
     )
+    .addService(QrCodeService())
     .addService(
       WorkspaceService(
         workspaceDataSource = workspaceDataSource,
