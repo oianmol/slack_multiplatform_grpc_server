@@ -45,7 +45,7 @@ class QrCodeService(
                 }
             }
             while (!isClosedForSend) {
-
+                // don't close //TODO add a check for 1 min internal and recreate the QR!
             }
         }
     }
