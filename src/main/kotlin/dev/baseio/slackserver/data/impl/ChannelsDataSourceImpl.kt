@@ -7,6 +7,8 @@ import dev.baseio.slackserver.data.sources.ChannelsDataSource
 import dev.baseio.slackserver.data.models.SkChannel
 import dev.baseio.slackserver.data.models.SkChannelMember
 import dev.baseio.slackserver.data.sources.ChannelMemberDataSource
+import io.grpc.Status
+import io.grpc.StatusException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.mapNotNull
@@ -53,6 +55,12 @@ class ChannelsDataSourceImpl(
     request: SkChannel.SkGroupChannel,
     adminId: String
   ): SkChannel.SkGroupChannel? {
+    val previousChannels = slackCloneDB.getCollection<SkChannel.SkGroupChannel>()
+      .find(SkChannel.SkGroupChannel::name eq request.name,
+        SkChannel.SkGroupChannel::workspaceId eq request.workspaceId)
+    if(previousChannels.toList().isNotEmpty()){
+      throw StatusException(Status.ALREADY_EXISTS)
+    }
     slackCloneDB.getCollection<SkChannel.SkGroupChannel>()
       .insertOne(request)
     slackCloneDB.getCollection<SkChannelMember>()
