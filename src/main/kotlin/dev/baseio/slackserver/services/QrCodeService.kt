@@ -10,51 +10,51 @@ import dev.baseio.slackserver.services.interceptors.AUTH_CONTEXT_KEY
 import io.grpc.Status
 import io.grpc.StatusException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.launch
 import org.litote.kmongo.coroutine.CoroutineDatabase
 import org.litote.kmongo.eq
 import java.io.File
 import java.nio.file.Path
 import java.time.LocalDateTime
-import java.util.UUID
+import java.util.*
+import kotlin.collections.HashMap
 import kotlin.coroutines.CoroutineContext
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.fileSize
 import kotlin.io.path.inputStream
 
 
-val qrCodeGenerator = QrCodeGenerator()
-
 class QrCodeService(
     coroutineContext: CoroutineContext = Dispatchers.IO,
     private val database: CoroutineDatabase,
+    private val qrCodeGenerator: IQrCodeGenerator,
 ) : QrCodeServiceGrpcKt.QrCodeServiceCoroutineImplBase(coroutineContext) {
 
     override fun generateQRCode(request: SKQrCodeGenerator): Flow<SKQrCodeResponse> {
         return channelFlow {
-            val data = UUID.randomUUID().toString()
+            val data = qrCodeGenerator.randomToken()
             val result = qrCodeGenerator.process(data)
-            send(result.first)
-            qrCodeGenerator.inMemoryQrCodes[data] = Pair(result.second) {
+            send(result.first) // first send the QR code!
+            qrCodeGenerator.put(data,result) { // when authenticated send the auth result
                 launch {
                     send(sKQrCodeResponse {
                         this.authResult = it
                     })
+                    close()
                 }
             }
             awaitClose {
-                qrCodeGenerator.inMemoryQrCodes[data]?.first?.deleteIfExists()
-                qrCodeGenerator.inMemoryQrCodes.remove(data)
+                qrCodeGenerator.removeQrCode(data) // remove the QR code and corr info!
             }
         }
     }
 
 
     override suspend fun verifyQrCode(request: SKQRAuthVerify): SKAuthResult {
-        qrCodeGenerator.inMemoryQrCodes[request.token]?.let {
+        qrCodeGenerator.find(request.token)?.let {
             val user = AUTH_CONTEXT_KEY.get()
             val skUser = database.getCollection<SkUser>().findOne(SkUser::uuid eq user.userId)
             it.first.deleteIfExists()
@@ -62,14 +62,14 @@ class QrCodeService(
             qrCodeGenerator.notifyAuthenticated(result, request)
             return result
         }
-        throw StatusException(Status.UNAUTHENTICATED)
+        throw StatusException(Status.NOT_FOUND)
     }
 }
 
-class QrCodeGenerator {
-    val inMemoryQrCodes = hashMapOf<String, Pair<Path, (SKAuthResult) -> Unit>>() // TODO this is dirty!
+class QrCodeGenerator :IQrCodeGenerator {
+    override val inMemoryQrCodes: HashMap<String, Pair<Path, (SKAuthResult) -> Unit>> = hashMapOf()
 
-    fun process(data: String): Pair<SKQrCodeResponse, Path> {
+    override fun process(data: String): Pair<SKQrCodeResponse, Path> {
         with(generateImage(data)) {
             val ins = inputStream(java.nio.file.StandardOpenOption.READ)
             val bytes = ins.readAllBytes()
@@ -95,13 +95,7 @@ class QrCodeGenerator {
         }
     }
 
-    suspend fun notifyAuthenticated(result: SKAuthResult, request: SKQRAuthVerify) {
-        qrCodeGenerator.inMemoryQrCodes[request.token]?.first?.deleteIfExists()
-        qrCodeGenerator.inMemoryQrCodes[request.token]?.second?.invoke(result)
-        qrCodeGenerator.inMemoryQrCodes.remove(request.token)
-    }
-
-    fun registerFor(data: String, function: () -> Unit) {
-        TODO("Not yet implemented")
+    override fun randomToken(): String {
+        return UUID.randomUUID().toString()
     }
 }

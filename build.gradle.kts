@@ -13,6 +13,11 @@ repositories {
 
 dependencies {
   testImplementation(kotlin("test"))
+  testImplementation("app.cash.turbine:turbine:0.12.0")
+  testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.4")
+// https://mvnrepository.com/artifact/io.grpc/grpc-testing
+  testImplementation("io.grpc:grpc-testing:1.50.2")
+
   // grpc
   implementation("io.grpc:grpc-netty-shaded:1.49.2")
   implementation("dev.baseio.slackdatalib:slack-multiplatform-generate-protos:1.0.0")

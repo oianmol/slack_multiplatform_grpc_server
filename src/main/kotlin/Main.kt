@@ -13,6 +13,7 @@ fun main() {
   val channelsDataSource = ChannelsDataSourceImpl(Database.slackDB, channelMemberDataSource)
   val messagesDataSource = MessagesDataSourceImpl(Database.slackDB)
   val authDataSource = AuthDataSourceImpl(Database.slackDB)
+  val qrCodeGenerator : IQrCodeGenerator = QrCodeGenerator()
 
   val authenticationDelegate: AuthenticationDelegate = AuthenticationDelegateImpl(authDataSource, usersDataSource)
 
@@ -23,7 +24,7 @@ fun main() {
         authenticationDelegate = authenticationDelegate
       )
     )
-    .addService(QrCodeService(database=Database.slackDB))
+    .addService(QrCodeService(database=Database.slackDB,qrCodeGenerator=qrCodeGenerator))
     .addService(
       WorkspaceService(
         workspaceDataSource = workspaceDataSource,
