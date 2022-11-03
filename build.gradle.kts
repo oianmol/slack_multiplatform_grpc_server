@@ -17,9 +17,10 @@ dependencies {
   testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.4")
 // https://mvnrepository.com/artifact/io.grpc/grpc-testing
   testImplementation("io.grpc:grpc-testing:1.50.2")
+  implementation("com.google.crypto.tink:tink:1.7.0")
 
   // grpc
-  implementation("io.grpc:grpc-netty-shaded:1.49.2")
+  implementation("io.grpc:grpc-netty-shaded:1.50.2")
   implementation(project(":slack_generate_protos"))
 // https://mvnrepository.com/artifact/com.google.zxing/core
   implementation("com.google.zxing:core:3.5.0")
