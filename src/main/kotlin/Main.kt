@@ -17,7 +17,7 @@ fun main() {
     val tlsCertFile = object {}.javaClass.getResourceAsStream(TLS_CERT_PATH_OPTION)
     val tlsPrivateKeyFile = object {}.javaClass.getResourceAsStream(TLS_PRIVATE_KEY_PATH_OPTION)
 
-    ServerBuilder.forPort(17600)
+    ServerBuilder.forPort(443)
         .useTransportSecurity(tlsCertFile, tlsPrivateKeyFile)
         .addService(
             AuthService(
