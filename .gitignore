@@ -3,6 +3,7 @@
 *.class
 build
 build/
+tools/build
 .idea
 .gradle
 .idea/

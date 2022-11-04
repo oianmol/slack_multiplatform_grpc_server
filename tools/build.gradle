@@ -18,6 +18,10 @@ repositories {
     mavenCentral()
 }
 
+tasks.withType(Copy) {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
 applicationDistribution.into('bin') {
     from(ecdsaKeyPairGenerator)
     fileMode = 0755
