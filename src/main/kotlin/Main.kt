@@ -6,12 +6,19 @@ import io.grpc.ServerBuilder
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 
+const val TLS_CERT_PATH_OPTION = "tls/tls.crt"
+const val TLS_PRIVATE_KEY_PATH_OPTION = "tls/tls.key"
+
 fun main() {
     val koinApplication = startKoin {
         modules(dataSourcesModule)
     }
+    // The {certificate, private key} pair to use for gRPC TLS.
+    val tlsCertFile = object {}.javaClass.getResourceAsStream(TLS_CERT_PATH_OPTION)
+    val tlsPrivateKeyFile = object {}.javaClass.getResourceAsStream(TLS_PRIVATE_KEY_PATH_OPTION)
 
     ServerBuilder.forPort(17600)
+        .useTransportSecurity(tlsCertFile, tlsPrivateKeyFile)
         .addService(
             AuthService(
                 authDataSource = koinApplication.koin.get(),
@@ -38,11 +45,7 @@ fun main() {
                 usersDataSource = koinApplication.koin.get()
             )
         )
-        .addService(
-            MessagingService(
-                messagesDataSource = koinApplication.koin.get(),
-            )
-        )
+        .addService(MessagingService(messagesDataSource = koinApplication.koin.get()))
         .addService(UserService(usersDataSource = koinApplication.koin.get()))
         .intercept(AuthInterceptor())
         .build()
