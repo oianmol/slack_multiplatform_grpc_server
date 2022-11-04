@@ -21,6 +21,7 @@ dependencies {
 
   implementation(project(":slack_generate_protos"))
 
+  implementation("io.insert-koin:koin-core:3.2.2")
   implementation("com.google.crypto.tink:tink:1.7.0")
   implementation("io.grpc:grpc-netty-shaded:1.50.2")
   implementation("com.google.zxing:core:3.5.0")

@@ -4,20 +4,22 @@ import com.google.crypto.tink.subtle.Base64
 import dev.baseio.slackdata.protos.Empty
 import dev.baseio.slackdata.protos.empty
 import dev.baseio.slackdata.securepush.*
-import dev.baseio.slackserver.data.impl.UserPublicKeysSourceImpl
-import dev.baseio.slackserver.data.impl.UserPushTokenDataSourceImpl
 import dev.baseio.slackserver.data.models.PLATFORM_ANDROID
 import dev.baseio.slackserver.data.models.SKUserPublicKey
 import dev.baseio.slackserver.data.models.SKUserPushToken
+import dev.baseio.slackserver.data.sources.UserPublicKeysSource
+import dev.baseio.slackserver.data.sources.UserPushTokenDataSource
 import dev.baseio.slackserver.security.EncryptedManager
 import kotlinx.coroutines.Dispatchers
+import org.koin.core.qualifier.named
+import org.koin.java.KoinJavaComponent.getKoin
 import java.util.*
 import kotlin.coroutines.CoroutineContext
 
 class SecurePushService(
     coroutineContext: CoroutineContext = Dispatchers.IO,
-    private val userPushTokenDataSource: UserPushTokenDataSourceImpl,
-    private val userPublicKeysSource: UserPublicKeysSourceImpl,
+    private val userPushTokenDataSource: UserPushTokenDataSource,
+    private val userPublicKeysSource: UserPublicKeysSource,
 ) : SecurePushServiceGrpcKt.SecurePushServiceCoroutineImplBase(coroutineContext) {
     override suspend fun addOrUpdatePublicKey(request: AddOrUpdatePublicKeyRequest): Empty {
         userPublicKeysSource.saveUserPublicKey(request.toSKUserPublicKey())
@@ -36,7 +38,7 @@ class SecurePushService(
         val publicKey: ByteArray? =
             userPublicKeysSource.getKeyBytes(request.userId, request.keyAlgorithm.name, request.isAuthKey)
         // Generate ciphertext.
-        val encryptedManager: EncryptedManager = getEncrypterManager(request.keyAlgorithm)
+        val encryptedManager: EncryptedManager = getKoin().get(named(request.keyAlgorithm.name))
         encryptedManager.loadPublicKey(publicKey)
         val ciphertext: ByteArray = encryptedManager.encrypt(request.data.toByteArray())
         encryptedManager.clearPublicKey()

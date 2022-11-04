@@ -1,60 +1,53 @@
 import dev.baseio.slackserver.data.database.Database
-import dev.baseio.slackserver.data.impl.*
-import dev.baseio.slackserver.data.sources.UsersDataSource
+import dev.baseio.slackserver.dataSourcesModule
 import dev.baseio.slackserver.services.*
 import dev.baseio.slackserver.services.interceptors.AuthInterceptor
 import io.grpc.ServerBuilder
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
 
 fun main() {
-    val workspaceDataSource = WorkspaceDataSourceImpl(Database.slackDB)
-    val usersDataSource: UsersDataSource = UsersDataSourceImpl(Database.slackDB)
-
-    val channelMemberDataSource = ChannelMemberDataSourceImpl(Database.slackDB)
-    val channelsDataSource = ChannelsDataSourceImpl(Database.slackDB, channelMemberDataSource)
-    val messagesDataSource = MessagesDataSourceImpl(Database.slackDB)
-    val authDataSource = AuthDataSourceImpl(Database.slackDB)
-    val userPushTokenDataSource = UserPushTokenDataSourceImpl(Database.slackDB)
-    val userPublicKeysSource = UserPublicKeysSourceImpl(Database.slackDB)
-
-    val qrCodeGenerator: IQrCodeGenerator = QrCodeGenerator()
-
-    val authenticationDelegate: AuthenticationDelegate = AuthenticationDelegateImpl(authDataSource, usersDataSource)
+    val koinApplication = startKoin {
+        modules(dataSourcesModule)
+    }
 
     ServerBuilder.forPort(17600)
         .addService(
             AuthService(
-                authDataSource = authDataSource,
-                authenticationDelegate = authenticationDelegate
+                authDataSource = koinApplication.koin.get(),
+                authenticationDelegate = koinApplication.koin.get()
             )
         )
         .addService(
             SecurePushService(
-                userPushTokenDataSource = userPushTokenDataSource,
-                userPublicKeysSource = userPublicKeysSource
+                userPushTokenDataSource = koinApplication.koin.get(),
+                userPublicKeysSource = koinApplication.koin.get()
             )
         )
-        .addService(QrCodeService(database = Database.slackDB, qrCodeGenerator = qrCodeGenerator))
+        .addService(QrCodeService(database = Database.slackDB, qrCodeGenerator = koinApplication.koin.get()))
         .addService(
             WorkspaceService(
-                workspaceDataSource = workspaceDataSource,
-                authDelegate = authenticationDelegate
+                workspaceDataSource = koinApplication.koin.get(),
+                authDelegate = koinApplication.koin.get()
             )
         )
         .addService(
             ChannelService(
-                channelsDataSource = channelsDataSource,
-                channelMemberDataSource = channelMemberDataSource,
-                usersDataSource = usersDataSource
+                channelsDataSource = koinApplication.koin.get(),
+                channelMemberDataSource = koinApplication.koin.get(),
+                usersDataSource = koinApplication.koin.get()
             )
         )
         .addService(
             MessagingService(
-                messagesDataSource = messagesDataSource,
+                messagesDataSource = koinApplication.koin.get(),
             )
         )
-        .addService(UserService(usersDataSource = usersDataSource))
+        .addService(UserService(usersDataSource = koinApplication.koin.get()))
         .intercept(AuthInterceptor())
         .build()
         .start()
         .awaitTermination()
+
+    stopKoin()
 }
