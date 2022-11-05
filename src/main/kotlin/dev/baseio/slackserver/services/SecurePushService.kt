@@ -40,7 +40,7 @@ class SecurePushService(
         // Generate ciphertext.
         val encryptedManager: EncryptedManager = getKoin().get(named(request.keyAlgorithm.name))
         encryptedManager.loadPublicKey(publicKey)
-        val ciphertext = encryptedManager.encrypt(request.data.toByteArray())
+        val ciphertext = encryptedManager.encrypt(request.dataList.map { it.byte.toByte() }.toByteArray())
         encryptedManager.clearPublicKey()
         val ciphertextString = Base64.encode(ciphertext)
         // Get FCM token.
@@ -57,7 +57,7 @@ class SecurePushService(
 }
 
 private fun AddOrUpdatePublicKeyRequest.toSKUserPublicKey(): SKUserPublicKey {
-    return SKUserPublicKey(this.userId, this.algorithm.name, this.isAuth, this.keyBytes.toByteArray())
+    return SKUserPublicKey(this.userId, this.algorithm.name, this.isAuth, this.keyBytesList.map { it.byte.toByte() }.toByteArray())
 }
 
 private fun AddOrUpdateUserRequest.toSKUserPushToken(): SKUserPushToken {
