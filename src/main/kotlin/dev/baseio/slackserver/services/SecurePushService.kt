@@ -34,25 +34,32 @@ class SecurePushService(
     }
 
     override suspend fun sendMessage(request: SendMessageRequest): Empty {
-        // Get public key.
-        val publicKey: ByteArray? =
-            userPublicKeysSource.getKeyBytes(request.userId, request.keyAlgorithm.name, request.isAuthKey)
-        // Generate ciphertext.
-        val encryptedManager: EncryptedManager = getKoin().get(named(request.keyAlgorithm.name))
-        encryptedManager.loadPublicKey(publicKey)
-        val ciphertext = encryptedManager.encrypt(request.dataList.map { it.byte.toByte() }.toByteArray())
-        encryptedManager.clearPublicKey()
-        val ciphertextString = Base64.encode(ciphertext)
-        // Get FCM token.
-        val token: String? = userPushTokenDataSource.getToken(request.userId)
+        try{
+            // Get public key.
+            val publicKey: SKUserPublicKey? =
+                userPublicKeysSource.getKeyBytes(request.userId, request.keyAlgorithm.name, request.isAuthKey)
+            // Generate ciphertext.
+            val encryptedManager: EncryptedManager = getKoin().get(named(request.keyAlgorithm.name))
+            publicKey?.let { encryptedManager.loadPublicKey(it) }
+            val ciphertext = encryptedManager.encrypt(request.dataList.map { it.byte.toByte() }.toByteArray())
+            encryptedManager.clearPublicKey()
+            val ciphertextString = Base64.encode(ciphertext)
+            // Get FCM token.
+            val token: String? = userPushTokenDataSource.getToken(request.userId)
 
-        // Create the data map to be sent as a JSON object.
-        val dataMap: MutableMap<String, String> = HashMap()
-        dataMap[SlackConstants.CIPHERTEXT_KEY] = ciphertextString
-        dataMap[SlackConstants.KEY_ALGORITHM_KEY] = request.keyAlgorithm.name
+            // Create the data map to be sent as a JSON object.
+            val dataMap: MutableMap<String, String> = HashMap()
+            dataMap[SlackConstants.CIPHERTEXT_KEY] = ciphertextString
+            dataMap[SlackConstants.KEY_ALGORITHM_KEY] = request.keyAlgorithm.name
 
-        // send push message here to token with dataMap and
-        return empty { }
+            // send push message here to token with dataMap and
+            return empty {
+                this.nothing = ciphertextString
+            }
+        }catch (ex:Exception){
+            ex.printStackTrace()
+            throw ex
+        }
     }
 }
 

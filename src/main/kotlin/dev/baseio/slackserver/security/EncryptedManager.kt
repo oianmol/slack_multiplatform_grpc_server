@@ -1,21 +1,29 @@
 package dev.baseio.slackserver.security
 
 import com.google.crypto.tink.HybridEncrypt
+import dev.baseio.slackdata.protos.SKByteArrayElement
 import dev.baseio.slackdata.protos.sKByteArrayElement
 import dev.baseio.slackdata.securepush.*
-import org.koin.core.qualifier.named
-import org.koin.java.KoinJavaComponent.getKoin
+import dev.baseio.slackserver.data.models.SKUserPublicKey
+import java.io.InputStream
 
 abstract class EncryptedManager {
     private var encrypter: HybridEncrypt? = null
     private var isLoaded: Boolean = false
     var slackPublicKey: SlackPublicKey? = null
-    fun loadPublicKey(publicKey: ByteArray?) {
+    fun loadPublicKey(publicKey: SKUserPublicKey) {
         kotlin.runCatching {
-            slackPublicKey = SlackPublicKey.parseFrom(publicKey)
+            slackPublicKey = slackPublicKey {
+                this.isauth = publicKey.isAuth
+                this.keybytes.addAll(publicKey.keyBytes.map { it ->
+                    sKByteArrayElement {
+                        this.byte = it.toInt()
+                    }
+                })
+            }
         }
         slackPublicKey?.let {
-            encrypter = rawLoadPublicKey(slackPublicKey!!.keyBytesList.map { it.byte.toByte() }.toByteArray())
+            encrypter = rawLoadPublicKey(publicKey.keyBytes)
             isLoaded = true
         }
     }
@@ -33,9 +41,9 @@ abstract class EncryptedManager {
         val ciphertext: ByteArray = encrypter!!.encrypt(data, null)
 
         return slackCiphertext {
-            this@slackCiphertext.keychainUniqueId = slackPublicKey!!.keychainUniqueId
-            this@slackCiphertext.keySerialNumber = slackPublicKey!!.serialNumber
-            this@slackCiphertext.isAuthKey = slackPublicKey!!.isAuth
+            this@slackCiphertext.keychainuniqueid = slackPublicKey!!.keychainuniqueid
+            this@slackCiphertext.keyserialnumber = slackPublicKey!!.serialnumber
+            this@slackCiphertext.isauthkey = slackPublicKey!!.isauth
             this@slackCiphertext.ciphertext.addAll(ciphertext.toTypedArray().map { mapByte ->
                 sKByteArrayElement {
                     byte = mapByte.toInt()
@@ -47,15 +55,15 @@ abstract class EncryptedManager {
     abstract fun rawLoadPublicKey(publicKey: ByteArray): HybridEncrypt
 
     interface Factory {
-        fun create(keyAlgorithm: KeyAlgorithm): EncryptedManager
+        fun create(keyAlgorithm: KeyAlgorithm, ins: InputStream?): EncryptedManager
     }
 }
 
 class EncryptedManagerFactory : EncryptedManager.Factory {
-    override fun create(keyAlgorithm: KeyAlgorithm): EncryptedManager {
+    override fun create(keyAlgorithm: KeyAlgorithm, ins: InputStream?): EncryptedManager {
         return when (keyAlgorithm) {
             KeyAlgorithm.RSA_ECDSA -> {
-                RsaEcdsaEncryptedManager(getKoin().get(named(RsaEcdsaConstants.FILE_INPUT_STREAM)))
+                RsaEcdsaEncryptedManager(ins!!)
             }
 
             KeyAlgorithm.WEB_PUSH -> {

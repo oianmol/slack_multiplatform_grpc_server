@@ -1,23 +1,41 @@
+import com.google.crypto.tink.aead.AeadConfig
+import com.google.crypto.tink.proto.Ecdsa
+import com.google.crypto.tink.signature.SignatureConfig
+import dev.baseio.slackdata.securepush.KeyAlgorithm
 import dev.baseio.slackserver.data.database.Database
 import dev.baseio.slackserver.dataSourcesModule
+import dev.baseio.slackserver.security.EncryptedManagerFactory
 import dev.baseio.slackserver.services.*
 import dev.baseio.slackserver.services.interceptors.AuthInterceptor
 import io.grpc.ServerBuilder
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
+import org.koin.core.qualifier.named
+import org.koin.dsl.module
 
 const val TLS_CERT_PATH_OPTION = "tls/tls.crt"
 const val TLS_PRIVATE_KEY_PATH_OPTION = "tls/tls.key"
+const val SENDER_SIGNING_KEY = "ecdsa/sender_signing_key.dat"
 
 fun main() {
+    com.google.crypto.tink.Config.register(SignatureConfig.LATEST);
+    AeadConfig.register()
+    val ins = Ecdsa::javaClass.javaClass.getResourceAsStream(SENDER_SIGNING_KEY)
     val koinApplication = startKoin {
-        modules(dataSourcesModule)
+        modules(dataSourcesModule, module {
+            factory(qualifier = named(KeyAlgorithm.RSA_ECDSA.name)) {
+                EncryptedManagerFactory().create(KeyAlgorithm.RSA_ECDSA,ins)
+            }
+            factory(qualifier = named(KeyAlgorithm.WEB_PUSH.name)) {
+                EncryptedManagerFactory().create(KeyAlgorithm.WEB_PUSH, ins)
+            }
+        })
     }
     // The {certificate, private key} pair to use for gRPC TLS.
     val tlsCertFile = object {}.javaClass.getResourceAsStream(TLS_CERT_PATH_OPTION)
     val tlsPrivateKeyFile = object {}.javaClass.getResourceAsStream(TLS_PRIVATE_KEY_PATH_OPTION)
 
-    ServerBuilder.forPort(443)
+    ServerBuilder.forPort(8443)
         //.useTransportSecurity(tlsCertFile, tlsPrivateKeyFile) // TODO enable this once the kmp library supports this.
         .addService(
             AuthService(

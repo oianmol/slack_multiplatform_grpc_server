@@ -18,8 +18,8 @@ class WebPushEncryptedManager : EncryptedManager() {
             throw GeneralSecurityException("unable to parse public key", e)
         }
         return WebPushHybridEncrypt.Builder()
-            .withAuthSecret(wrappedWebPushPublicKey.authSecretList.map { it.byte.toByte() }.toByteArray())
-            .withRecipientPublicKey(wrappedWebPushPublicKey.keyBytesList.map { it.byte.toByte() }.toByteArray())
+            .withAuthSecret(wrappedWebPushPublicKey.authsecretList.map { it.byte.toByte() }.toByteArray())
+            .withRecipientPublicKey(wrappedWebPushPublicKey.keybytesList.map { it.byte.toByte() }.toByteArray())
             .build()
     }
 }

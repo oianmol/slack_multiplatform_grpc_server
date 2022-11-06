@@ -32,6 +32,5 @@ class RsaEcdsaConstants {
     companion object {
         val OAEP_PARAMETER_SPEC = OAEPParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA1, PSpecified.DEFAULT)
         const val SIGNATURE_LENGTH_BYTES_LENGTH = 4
-        const val FILE_INPUT_STREAM = "ecdsa/sender_signing_key.dat"
     }
 }

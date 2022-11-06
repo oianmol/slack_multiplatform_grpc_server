@@ -4,9 +4,9 @@ import com.google.crypto.tink.BinaryKeysetReader
 import com.google.crypto.tink.CleartextKeysetHandle
 import com.google.crypto.tink.HybridEncrypt
 import com.google.crypto.tink.PublicKeySign
+import com.google.crypto.tink.signature.PublicKeySignFactory
 import com.google.protobuf.InvalidProtocolBufferException
 import dev.baseio.slackdata.securepush.WrappedRsaEcdsaPublicKey
-import java.io.IOException
 import java.io.InputStream
 import java.security.GeneralSecurityException
 import java.security.KeyFactory
@@ -22,7 +22,7 @@ class RsaEcdsaEncryptedManager(senderSigningKey: InputStream) : EncryptedManager
     init {
         val signingKeyHandle = CleartextKeysetHandle
             .read(BinaryKeysetReader.withInputStream(senderSigningKey))
-        senderSigner = signingKeyHandle.publicKeysetHandle.getPrimitive(PublicKeySign::class.java)
+        senderSigner = PublicKeySignFactory.getPrimitive(signingKeyHandle)
         senderSigningKey.close()
     }
 
@@ -33,12 +33,12 @@ class RsaEcdsaEncryptedManager(senderSigningKey: InputStream) : EncryptedManager
             throw GeneralSecurityException("unable to parse public key", e)
         }
         val recipientPublicKey = KeyFactory.getInstance("RSA").generatePublic(
-            X509EncodedKeySpec(wrappedRsaEcdsaPublicKey.keyBytesList.map { it.byte.toByte() }.toByteArray())
+            X509EncodedKeySpec(wrappedRsaEcdsaPublicKey.keybytesList.map { it.byte.toByte() }.toByteArray())
         )
         return RsaEcdsaHybridEncrypt.Builder()
             .withSenderSigner(senderSigner)
             .withRecipientPublicKey(recipientPublicKey)
-            .withPadding(RsaEcdsaConstants.Padding.valueOf(wrappedRsaEcdsaPublicKey.padding))
+            .withPadding(RsaEcdsaConstants.Padding.valueOf("OAEP"))
             .build()
     }
 

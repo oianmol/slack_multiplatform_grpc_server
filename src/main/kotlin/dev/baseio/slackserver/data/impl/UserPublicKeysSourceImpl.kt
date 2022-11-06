@@ -12,12 +12,12 @@ class UserPublicKeysSourceImpl(private val coroutineDatabase: CoroutineDatabase)
             .insertOne(skUserPublicKey)
     }
 
-    override suspend fun getKeyBytes(userId: String, name: String, authKey: Boolean): ByteArray? {
+    override suspend fun getKeyBytes(userId: String, name: String, authKey: Boolean): SKUserPublicKey? {
         return coroutineDatabase.getCollection<SKUserPublicKey>()
             .findOne(
                 SKUserPublicKey::userId eq userId,
                 SKUserPublicKey::algorithm eq name,
                 SKUserPublicKey::isAuth eq  authKey
-            )?.keyBytes
+            )
     }
 }

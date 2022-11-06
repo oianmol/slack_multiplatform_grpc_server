@@ -4,5 +4,5 @@ import dev.baseio.slackserver.data.models.SKUserPublicKey
 
 interface UserPublicKeysSource {
     suspend fun saveUserPublicKey(skUserPublicKey: SKUserPublicKey)
-    suspend fun getKeyBytes(userId: String, name: String, authKey: Boolean): ByteArray?
+    suspend fun getKeyBytes(userId: String, name: String, authKey: Boolean): SKUserPublicKey?
 }
