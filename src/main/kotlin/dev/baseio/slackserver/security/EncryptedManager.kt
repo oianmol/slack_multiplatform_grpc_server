@@ -1,7 +1,6 @@
 package dev.baseio.slackserver.security
 
 import com.google.crypto.tink.HybridEncrypt
-import dev.baseio.slackdata.protos.SKByteArrayElement
 import dev.baseio.slackdata.protos.sKByteArrayElement
 import dev.baseio.slackdata.securepush.*
 import dev.baseio.slackserver.data.models.SKUserPublicKey
@@ -44,7 +43,7 @@ abstract class EncryptedManager {
             this@slackCiphertext.keychainuniqueid = slackPublicKey!!.keychainuniqueid
             this@slackCiphertext.keyserialnumber = slackPublicKey!!.serialnumber
             this@slackCiphertext.isauthkey = slackPublicKey!!.isauth
-            this@slackCiphertext.ciphertext.addAll(ciphertext.toTypedArray().map { mapByte ->
+            this@slackCiphertext.ciphertext.addAll(ciphertext.map { mapByte ->
                 sKByteArrayElement {
                     byte = mapByte.toInt()
                 }

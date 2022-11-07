@@ -38,7 +38,7 @@ class RsaEcdsaEncryptedManager(senderSigningKey: InputStream) : EncryptedManager
         return RsaEcdsaHybridEncrypt.Builder()
             .withSenderSigner(senderSigner)
             .withRecipientPublicKey(recipientPublicKey)
-            .withPadding(RsaEcdsaConstants.Padding.valueOf("PKCS1"))
+            .withPadding(RsaEcdsaConstants.Padding.OAEP)
             .build()
     }
 

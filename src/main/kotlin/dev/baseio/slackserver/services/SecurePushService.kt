@@ -36,12 +36,14 @@ class SecurePushService(
     override suspend fun sendMessage(request: SendMessageRequest): Empty {
         try{
             // Get public key.
-            val publicKey: SKUserPublicKey? =
+            val recipientPublicKey: SKUserPublicKey? =
                 userPublicKeysSource.getKeyBytes(request.userId, request.keyAlgorithm.name, request.isAuthKey)
-            // Generate ciphertext.
+            val message = request.dataList.map { it.byte.toByte() }.toByteArray()
+
+            // To create a ciphertext.
             val encryptedManager: EncryptedManager = getKoin().get(named(request.keyAlgorithm.name))
-            publicKey?.let { encryptedManager.loadPublicKey(it) }
-            val ciphertext = encryptedManager.encrypt(request.dataList.map { it.byte.toByte() }.toByteArray())
+            recipientPublicKey?.let { encryptedManager.loadPublicKey(it) }
+            val ciphertext = encryptedManager.encrypt(message)
             encryptedManager.clearPublicKey()
             val ciphertextString = Base64.encode(ciphertext)
             // Get FCM token.

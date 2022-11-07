@@ -20,14 +20,14 @@ const val SENDER_SIGNING_KEY = "ecdsa/sender_signing_key.dat"
 fun main() {
     com.google.crypto.tink.Config.register(SignatureConfig.LATEST);
     AeadConfig.register()
-    val ins = Ecdsa::javaClass.javaClass.getResourceAsStream(SENDER_SIGNING_KEY)
     val koinApplication = startKoin {
         modules(dataSourcesModule, module {
             factory(qualifier = named(KeyAlgorithm.RSA_ECDSA.name)) {
+                val ins = Ecdsa::javaClass.javaClass.getResourceAsStream(SENDER_SIGNING_KEY)
                 EncryptedManagerFactory().create(KeyAlgorithm.RSA_ECDSA,ins)
             }
             factory(qualifier = named(KeyAlgorithm.WEB_PUSH.name)) {
-                EncryptedManagerFactory().create(KeyAlgorithm.WEB_PUSH, ins)
+                EncryptedManagerFactory().create(KeyAlgorithm.WEB_PUSH, null)
             }
         })
     }
