@@ -1,8 +1,8 @@
 package dev.baseio.slackserver.security
 
 import com.google.crypto.tink.HybridEncrypt
-import dev.baseio.slackdata.protos.sKByteArrayElement
-import dev.baseio.slackdata.securepush.*
+import dev.baseio.slackdata.common.*
+import capillary.kmp.*
 import dev.baseio.slackserver.data.models.SKUserPublicKey
 import java.io.InputStream
 
@@ -13,9 +13,8 @@ abstract class EncryptedManager {
     fun loadPublicKey(publicKey: SKUserPublicKey) {
         kotlin.runCatching {
             slackPublicKey = slackPublicKey {
-                this.isauth = publicKey.isAuth
                 this.keybytes.addAll(publicKey.keyBytes.map { it ->
-                    sKByteArrayElement {
+                    byteArrayElement {
                         this.byte = it.toInt()
                     }
                 })
@@ -40,11 +39,8 @@ abstract class EncryptedManager {
         val ciphertext: ByteArray = encrypter!!.encrypt(data, null)
 
         return slackCiphertext {
-            this@slackCiphertext.keychainuniqueid = slackPublicKey!!.keychainuniqueid
-            this@slackCiphertext.keyserialnumber = slackPublicKey!!.serialnumber
-            this@slackCiphertext.isauthkey = slackPublicKey!!.isauth
             this@slackCiphertext.ciphertext.addAll(ciphertext.map { mapByte ->
-                sKByteArrayElement {
+                byteArrayElement {
                     byte = mapByte.toInt()
                 }
             })
@@ -54,22 +50,18 @@ abstract class EncryptedManager {
     abstract fun rawLoadPublicKey(publicKey: ByteArray): HybridEncrypt
 
     interface Factory {
-        fun create(keyAlgorithm: KeyAlgorithm, ins: InputStream?): EncryptedManager
+        fun create(keyAlgorithm: capillary.kmp.KeyAlgorithm, ins: InputStream?): EncryptedManager
     }
 }
 
 class EncryptedManagerFactory : EncryptedManager.Factory {
-    override fun create(keyAlgorithm: KeyAlgorithm, ins: InputStream?): EncryptedManager {
+    override fun create(keyAlgorithm: capillary.kmp.KeyAlgorithm, ins: InputStream?): EncryptedManager {
         return when (keyAlgorithm) {
-            KeyAlgorithm.RSA_ECDSA -> {
+            capillary.kmp.KeyAlgorithm.RSA_ECDSA -> {
                 RsaEcdsaEncryptedManager(ins!!)
             }
 
-            KeyAlgorithm.WEB_PUSH -> {
-                WebPushEncryptedManager()
-            }
-
-            KeyAlgorithm.UNRECOGNIZED -> {
+            capillary.kmp.KeyAlgorithm.UNRECOGNIZED -> {
                 throw RuntimeException("Requested and UNRECOGNIZED EncryptedManager")
             }
         }

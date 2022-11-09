@@ -1,6 +1,7 @@
 package dev.baseio.slackserver.services
 
 
+import dev.baseio.slackdata.common.Empty
 import dev.baseio.slackdata.protos.*
 import dev.baseio.slackserver.data.sources.AuthDataSource
 import dev.baseio.slackserver.data.models.SkUser

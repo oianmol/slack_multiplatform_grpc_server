@@ -1,9 +1,7 @@
 package dev.baseio.slackserver.services
 
-import com.google.crypto.tink.subtle.Base64
-import dev.baseio.slackdata.common.Empty
-import dev.baseio.slackdata.common.empty
-import dev.baseio.slackdata.securepush.*
+import dev.baseio.slackdata.common.*
+import capillary.kmp.*
 import dev.baseio.slackserver.data.models.PLATFORM_ANDROID
 import dev.baseio.slackserver.data.models.SKUserPublicKey
 import dev.baseio.slackserver.data.models.SKUserPushToken
@@ -18,18 +16,18 @@ class SecurePushService(
     private val userPushTokenDataSource: UserPushTokenDataSource,
     private val userPublicKeysSource: UserPublicKeysSource,
 ) : SecurePushServiceGrpcKt.SecurePushServiceCoroutineImplBase(coroutineContext) {
-    override suspend fun addOrUpdatePublicKey(request: AddOrUpdatePublicKeyRequest): Empty {
+    override suspend fun addOrUpdatePublicKey(request: AddOrUpdatePublicKeyRequest): capillary.kmp.Empty {
         val authData = AUTH_CONTEXT_KEY.get()
         userPublicKeysSource.saveUserPublicKey(request.toSKUserPublicKey(authData.userId))
-        return empty { }
+        return capillary.kmp.empty { }
     }
 
-    override suspend fun addOrUpdateUser(request: AddOrUpdateUserRequest): Empty {
+    override suspend fun addOrUpdateUser(request: AddOrUpdateUserRequest): capillary.kmp.Empty {
         val authData = AUTH_CONTEXT_KEY.get()
         if (userPushTokenDataSource.checkIfTokenExists(authData.userId) == 0L) {
             userPushTokenDataSource.saveUserToken(request.toSKUserPushToken(authData.userId))
         }
-        return empty { }
+        return capillary.kmp.empty { }
     }
 
     /*override suspend fun sendMessage(request: SendMessageRequest): Empty {

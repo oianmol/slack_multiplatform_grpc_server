@@ -17,7 +17,6 @@ class UserPublicKeysSourceImpl(private val coroutineDatabase: CoroutineDatabase)
             .findOne(
                 SKUserPublicKey::userId eq userId,
                 SKUserPublicKey::algorithm eq name,
-                SKUserPublicKey::isAuth eq  authKey
             )
     }
 }

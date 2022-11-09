@@ -6,7 +6,7 @@ import com.google.crypto.tink.HybridEncrypt
 import com.google.crypto.tink.PublicKeySign
 import com.google.crypto.tink.signature.PublicKeySignFactory
 import com.google.protobuf.InvalidProtocolBufferException
-import dev.baseio.slackdata.securepush.WrappedRsaEcdsaPublicKey
+import capillary.kmp.*
 import java.io.InputStream
 import java.security.GeneralSecurityException
 import java.security.KeyFactory

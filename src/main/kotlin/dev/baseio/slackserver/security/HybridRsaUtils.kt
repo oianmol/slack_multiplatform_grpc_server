@@ -7,9 +7,8 @@ import com.google.crypto.tink.CleartextKeysetHandle
 import com.google.crypto.tink.KeysetHandle
 import com.google.crypto.tink.aead.AeadKeyTemplates
 import com.google.protobuf.InvalidProtocolBufferException
-import dev.baseio.slackdata.protos.sKByteArrayElement
-import dev.baseio.slackdata.securepush.HybridRsaCiphertext
-import dev.baseio.slackdata.securepush.hybridRsaCiphertext
+import dev.baseio.slackdata.common.*
+import capillary.kmp.*
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.security.GeneralSecurityException
@@ -65,12 +64,12 @@ object HybridRsaUtils {
         val payloadCiphertext = aead.encrypt(plaintext, emptyEad)
         return hybridRsaCiphertext {
             this@hybridRsaCiphertext.symmetrickeyciphertext.addAll(symmetricKeyCiphertext.map { mapByte ->
-                sKByteArrayElement {
+                byteArrayElement {
                     this.byte = mapByte.toInt()
                 }
             })
             this@hybridRsaCiphertext.payloadciphertext.addAll(payloadCiphertext.map { mapByte ->
-                sKByteArrayElement {
+                byteArrayElement {
                     this.byte = mapByte.toInt()
                 }
             })

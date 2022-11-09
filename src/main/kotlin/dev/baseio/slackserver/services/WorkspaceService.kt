@@ -1,5 +1,6 @@
 package dev.baseio.slackserver.services
 
+import dev.baseio.slackdata.common.Empty
 import dev.baseio.slackdata.protos.*
 import dev.baseio.slackserver.data.models.SkWorkspace
 import dev.baseio.slackserver.data.sources.WorkspaceDataSource

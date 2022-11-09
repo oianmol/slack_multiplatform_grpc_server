@@ -1,7 +1,7 @@
 import com.google.crypto.tink.aead.AeadConfig
 import com.google.crypto.tink.proto.Ecdsa
 import com.google.crypto.tink.signature.SignatureConfig
-import dev.baseio.slackdata.securepush.KeyAlgorithm
+import dev.baseio.slackdata.common.KeyAlgorithm
 import dev.baseio.slackserver.data.database.Database
 import dev.baseio.slackserver.dataSourcesModule
 import dev.baseio.slackserver.security.EncryptedManagerFactory
@@ -24,10 +24,7 @@ fun main() {
         modules(dataSourcesModule, module {
             factory(qualifier = named(KeyAlgorithm.RSA_ECDSA.name)) {
                 val ins = Ecdsa::javaClass.javaClass.getResourceAsStream(SENDER_SIGNING_KEY)
-                EncryptedManagerFactory().create(KeyAlgorithm.RSA_ECDSA,ins)
-            }
-            factory(qualifier = named(KeyAlgorithm.WEB_PUSH.name)) {
-                EncryptedManagerFactory().create(KeyAlgorithm.WEB_PUSH, null)
+                EncryptedManagerFactory().create(capillary.kmp.KeyAlgorithm.RSA_ECDSA,ins)
             }
         })
     }

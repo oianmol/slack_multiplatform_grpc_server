@@ -4,6 +4,7 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.MultiFormatWriter
 import com.google.zxing.client.j2se.MatrixToImageWriter
 import com.google.zxing.common.BitMatrix
+import dev.baseio.slackdata.common.sKByteArrayElement
 import dev.baseio.slackdata.protos.*
 import dev.baseio.slackserver.data.models.SkUser
 import dev.baseio.slackserver.services.interceptors.AUTH_CONTEXT_KEY
