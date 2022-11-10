@@ -36,24 +36,6 @@ class AuthService(
         return super.resetPassword(request)
     }
 
-    override suspend fun register(request: SKAuthUser): SKAuthResult {
-        return authenticateUser(request, request.user.workspaceId)
-    }
-
-    override suspend fun login(request: SKAuthUser): SKAuthResult {
-        authDataSource.login(request.email, request.password, request.user.workspaceId)?.let {
-            return skAuthResult(it)
-        }
-        return SKAuthResult
-            .newBuilder()
-            .setStatus(
-                SKStatus.newBuilder()
-                    .setInformation("User not found for the workspace!")
-                    .build()
-            )
-            .build()
-    }
-
 
 }
 

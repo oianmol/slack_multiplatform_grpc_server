@@ -74,7 +74,7 @@ class WorkspaceService(
             .build()
     }
 
-    override suspend fun saveWorkspace(request: SKCreateWorkspaceRequest): SKAuthResult {
+    override suspend fun letMeIn(request: SKCreateWorkspaceRequest): SKAuthResult {
         workspaceDataSource.findWorkspaceForName(request.workspace.name)?.let {
             //if workspace exists then authenticateUser!
             return authenticateUser(request.user, workspaceId = it.uuid)

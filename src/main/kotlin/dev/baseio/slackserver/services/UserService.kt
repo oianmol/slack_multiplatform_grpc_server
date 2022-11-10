@@ -3,6 +3,7 @@ package dev.baseio.slackserver.services
 
 import dev.baseio.slackdata.common.Empty
 import dev.baseio.slackdata.protos.*
+import dev.baseio.slackserver.data.models.SKUserPublicKey
 import dev.baseio.slackserver.data.models.SkUser
 import dev.baseio.slackserver.data.sources.UsersDataSource
 import dev.baseio.slackserver.services.interceptors.AUTH_CONTEXT_KEY
@@ -89,6 +90,7 @@ fun SKUser.toDBUser(userId: String = UUID.randomUUID().toString()): SkUser {
         this.username.takeIf { !it.isNullOrEmpty() } ?: this.email.split("@").first(),
         this.userSince,
         this.phone,
-        this.avatarUrl.takeIf { !it.isNullOrEmpty() } ?: "https://picsum.photos/300/300"
+        this.avatarUrl.takeIf { !it.isNullOrEmpty() } ?: "https://picsum.photos/300/300",
+        SKUserPublicKey(keyBytes = this.publicKey.keybytesList.map { it.byte.toByte() }.toByteArray(), algorithm = "")
     )
 }

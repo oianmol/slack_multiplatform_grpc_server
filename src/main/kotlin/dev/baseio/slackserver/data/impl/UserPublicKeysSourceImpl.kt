@@ -15,7 +15,6 @@ class UserPublicKeysSourceImpl(private val coroutineDatabase: CoroutineDatabase)
     override suspend fun getKeyBytes(userId: String, name: String, authKey: Boolean): SKUserPublicKey? {
         return coroutineDatabase.getCollection<SKUserPublicKey>()
             .findOne(
-                SKUserPublicKey::userId eq userId,
                 SKUserPublicKey::algorithm eq name,
             )
     }

@@ -14,7 +14,7 @@ repositories {
 dependencies {
 
   testImplementation(kotlin("test"))
-  testImplementation("app.cash.turbine:turbine:0.12.0")
+  testImplementation("app.cash.turbine:turbine:0.12.1")
   testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.4")
   testImplementation("io.grpc:grpc-testing:1.50.2")
 

@@ -63,7 +63,7 @@ class SecurePushService(
 }
 
 private fun AddOrUpdatePublicKeyRequest.toSKUserPublicKey(userId: String): SKUserPublicKey {
-    return SKUserPublicKey(userId, this.algorithm.name, this.keyBytesList.map { it.byte.toByte() }.toByteArray())
+    return SKUserPublicKey(this.algorithm.name, this.keyBytesList.map { it.byte.toByte() }.toByteArray())
 }
 
 private fun AddOrUpdateUserRequest.toSKUserPushToken(userId: String): SKUserPushToken {
