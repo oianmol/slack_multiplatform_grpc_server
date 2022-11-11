@@ -1,6 +1,8 @@
 package dev.baseio.slackserver.services
 
+import dev.baseio.slackdata.common.sKByteArrayElement
 import dev.baseio.slackdata.protos.*
+import dev.baseio.slackserver.data.models.SKUserPublicKey
 import dev.baseio.slackserver.data.sources.ChannelsDataSource
 import dev.baseio.slackserver.data.models.SkChannel
 import dev.baseio.slackserver.data.models.SkChannelMember
@@ -78,7 +80,10 @@ class ChannelService(
 
   override suspend fun savePublicChannel(request: SKChannel): SKChannel {
     val authData = AUTH_CONTEXT_KEY.get()
-    return channelsDataSource.savePublicChannel(request.toDBChannel(), adminId = authData.userId)?.toGRPC()
+    return channelsDataSource.savePublicChannel(
+      request.toDBChannel(),
+      adminId = authData.userId
+    )?.toGRPC()
       ?: throw StatusException(Status.NOT_FOUND)
   }
 
@@ -203,22 +208,23 @@ fun SKDMChannel.toDBChannel(
     this.receiverId,
     createdDate,
     modifiedDate,
-    isDeleted
+    isDeleted,
+    SKUserPublicKey(keyBytes = this.publicKey.keybytesList.map { it.byte.toByte() }.toByteArray())
   )
 }
 
 fun SKChannel.toDBChannel(
-  workspaceId: String = UUID.randomUUID().toString(),
   channelId: String = UUID.randomUUID().toString()
 ): SkChannel.SkGroupChannel {
   return SkChannel.SkGroupChannel(
     this.uuid.takeIf { !it.isNullOrEmpty() } ?: channelId,
-    this.workspaceId ?: workspaceId,
+    this.workspaceId,
     this.name,
     createdDate,
     modifiedDate,
     avatarUrl,
-    isDeleted
+    isDeleted,
+    SKUserPublicKey(keyBytes = this.publicKey.keybytesList.map { it.byte.toByte() }.toByteArray())
   )
 }
 
@@ -230,6 +236,11 @@ fun SkChannel.SkGroupChannel.toGRPC(): SKChannel {
     .setCreatedDate(this.createdDate)
     .setWorkspaceId(this.workspaceId)
     .setModifiedDate(this.modifiedDate)
+    .setPublicKey(SlackPublicKey.newBuilder().addAllKeybytes(this.publicKey.keyBytes.map {
+      sKByteArrayElement {
+        this.byte = it.toInt()
+      }
+    }).build())
     .build()
 }
 
@@ -242,5 +253,10 @@ fun SkChannel.SkDMChannel.toGRPC(): SKDMChannel {
     .setReceiverId(this.receiverId)
     .setSenderId(this.senderId)
     .setWorkspaceId(this.workspaceId)
+    .setPublicKey(SlackPublicKey.newBuilder().addAllKeybytes(this.publicKey.keyBytes.map {
+      sKByteArrayElement {
+        this.byte = it.toInt()
+      }
+    }).build())
     .build()
 }

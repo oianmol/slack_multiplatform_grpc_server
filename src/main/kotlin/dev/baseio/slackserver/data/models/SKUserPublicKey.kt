@@ -1,7 +1,6 @@
 package dev.baseio.slackserver.data.models
 
 data class SKUserPublicKey(
-    val algorithm: String,
     val keyBytes: ByteArray
 ) {
     override fun equals(other: Any?): Boolean {
@@ -10,15 +9,12 @@ data class SKUserPublicKey(
 
         other as SKUserPublicKey
 
-        if (algorithm != other.algorithm) return false
         if (!keyBytes.contentEquals(other.keyBytes)) return false
 
         return true
     }
 
     override fun hashCode(): Int {
-        var result = algorithm.hashCode()
-        result = 31 * result + keyBytes.contentHashCode()
-        return result
+        return keyBytes.contentHashCode()
     }
 }
