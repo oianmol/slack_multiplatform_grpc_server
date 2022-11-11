@@ -1,10 +1,14 @@
 package dev.baseio.slackserver.data.impl
 
+import com.mongodb.client.model.Filters
+import com.mongodb.client.model.changestream.OperationType
 import dev.baseio.slackserver.data.models.SkChannel
 import dev.baseio.slackserver.data.models.SkChannelMember
 import dev.baseio.slackserver.data.sources.ChannelMemberDataSource
+import org.bson.Document
 import org.litote.kmongo.coroutine.CoroutineDatabase
 import org.litote.kmongo.eq
+import org.litote.kmongo.match
 
 class ChannelMemberDataSourceImpl(private val database: CoroutineDatabase) : ChannelMemberDataSource {
 
@@ -55,13 +59,26 @@ class ChannelMemberDataSourceImpl(private val database: CoroutineDatabase) : Cha
   }
 
   override suspend fun addMembers(listOf: List<SkChannelMember>) {
-    listOf.forEach {
+    listOf.forEach { skChannelMember ->
+      val channelMember = SkChannelMember(
+        channelId = skChannelMember.channelId, memberId = skChannelMember.memberId, workspaceId = skChannelMember.workspaceId,
+        channelEncryptedPrivateKey = skChannelMember.channelEncryptedPrivateKey
+      )
       val memberCollection = database.getCollection<SkChannelMember>()
       memberCollection.findOne(
-        SkChannelMember::channelId eq it.channelId, SkChannelMember::memberId eq it.memberId
-      ) ?: run {
+        SkChannelMember::channelId eq skChannelMember.channelId, SkChannelMember::memberId eq skChannelMember.memberId
+      )?.let { existingChannelMember ->
         database.getCollection<SkChannelMember>()
-          .insertOne(SkChannelMember(channelId = it.channelId, memberId = it.memberId, workspaceId = it.workspaceId))
+          .updateOne(
+            match(
+              Document.parse("{'fullDocument.memberId': '${existingChannelMember.workspaceId}'}"),
+              Document.parse("{'fullDocument.channelId': '${existingChannelMember.channelId}'}"),
+              Document.parse("{'fullDocument.workspaceId': '${existingChannelMember.workspaceId}'}"),
+            ), channelMember
+          )
+      } ?: kotlin.run {
+        database.getCollection<SkChannelMember>()
+          .insertOne(channelMember)
       }
     }
   }

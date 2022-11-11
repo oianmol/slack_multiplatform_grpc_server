@@ -24,7 +24,7 @@ fun main() {
         modules(dataSourcesModule, module {
             factory(qualifier = named(KeyAlgorithm.RSA_ECDSA.name)) {
                 val ins = Ecdsa::javaClass.javaClass.getResourceAsStream(SENDER_SIGNING_KEY)
-                EncryptedManagerFactory().create(capillary.kmp.KeyAlgorithm.RSA_ECDSA,ins)
+                EncryptedManagerFactory().create(ins)
             }
         })
     }
@@ -38,12 +38,6 @@ fun main() {
             AuthService(
                 authDataSource = koinApplication.koin.get(),
                 authenticationDelegate = koinApplication.koin.get()
-            )
-        )
-        .addService(
-            SecurePushService(
-                userPushTokenDataSource = koinApplication.koin.get(),
-                userPublicKeysSource = koinApplication.koin.get()
             )
         )
         .addService(QrCodeService(database = Database.slackDB, qrCodeGenerator = koinApplication.koin.get()))

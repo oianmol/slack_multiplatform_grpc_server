@@ -4,9 +4,3 @@
 [submodule "slack_protos"]
 	path = slack_protos
 	url = https://github.com/oianmol/slack_multiplatform_protos
-[submodule "capillary_generate_proto"]
-	path = capillary_generate_proto
-	url = https://github.com/oianmol/capillary_generate_proto.git
-[submodule "protos"]
-	path = protos
-	url = https://github.com/oianmol/capillary_protos.git

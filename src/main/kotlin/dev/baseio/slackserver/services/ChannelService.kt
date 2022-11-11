@@ -35,6 +35,7 @@ class ChannelService(
           this.channelId = channel.channelId
           this.memberId = user.uuid
           this.workspaceId = userData.workspaceId
+          this.channelPrivateKey = request.channelPrivateKey
         })
         return channelMembers(sKWorkspaceChannelRequest {
           this.channelId = channel.channelId
@@ -113,14 +114,12 @@ class ChannelService(
       previousChannel?.let {
         return it.toGRPC()
       } ?: run {
-        val channel = previousChannel ?: run {
-          request.copy {
-            uuid = UUID.randomUUID().toString()
-            senderId = authData.userId
-            createdDate = System.currentTimeMillis()
-            modifiedDate = System.currentTimeMillis()
-          }.toDBChannel()
-        }
+        val channel = request.copy {
+          uuid = UUID.randomUUID().toString()
+          senderId = authData.userId
+          createdDate = System.currentTimeMillis()
+          modifiedDate = System.currentTimeMillis()
+        }.toDBChannel()
         return channelsDataSource.saveDMChannel(channel)?.toGRPC()
           ?: throw StatusException(Status.NOT_FOUND)
       }
@@ -182,11 +181,20 @@ class ChannelService(
 }
 
 private fun SKChannelMember.toDBMember(): SkChannelMember {
-  return SkChannelMember(this.workspaceId, this.channelId, this.memberId).apply {
+  return SkChannelMember(
+    this.workspaceId,
+    this.channelId,
+    this.memberId,
+    this.channelPrivateKey.toSKUserPublicKey()
+  ).apply {
     this@toDBMember.uuid?.takeIf { it.isNotEmpty() }?.let {
       this.uuid = this@toDBMember.uuid
     }
   }
+}
+
+private fun SlackPublicKey.toSKUserPublicKey(): SKUserPublicKey {
+  return SKUserPublicKey(this.keybytesList.map { it.byte.toByte() }.toByteArray())
 }
 
 fun SkChannelMember.toGRPC(): SKChannelMember {

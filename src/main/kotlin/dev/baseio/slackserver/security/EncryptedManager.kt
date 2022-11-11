@@ -2,7 +2,7 @@ package dev.baseio.slackserver.security
 
 import com.google.crypto.tink.HybridEncrypt
 import dev.baseio.slackdata.common.*
-import capillary.kmp.*
+import dev.baseio.slackdata.protos.slackPublicKey
 import dev.baseio.slackserver.data.models.SKUserPublicKey
 import java.io.InputStream
 
@@ -25,9 +25,9 @@ abstract class EncryptedManager {
         }
         val ciphertext: ByteArray = encrypter!!.encrypt(data, null)
 
-        return slackCiphertext {
-            this@slackCiphertext.ciphertext.addAll(ciphertext.map { mapByte ->
-                byteArrayElement {
+        return slackPublicKey {
+            this@slackPublicKey.keybytes.addAll(ciphertext.map { mapByte ->
+                sKByteArrayElement {
                     byte = mapByte.toInt()
                 }
             })
@@ -37,21 +37,13 @@ abstract class EncryptedManager {
     abstract fun rawLoadPublicKey(publicKey: ByteArray): HybridEncrypt
 
     interface Factory {
-        fun create(keyAlgorithm: capillary.kmp.KeyAlgorithm, ins: InputStream?): EncryptedManager
+        fun create( ins: InputStream?): EncryptedManager
     }
 }
 
 class EncryptedManagerFactory : EncryptedManager.Factory {
-    override fun create(keyAlgorithm: capillary.kmp.KeyAlgorithm, ins: InputStream?): EncryptedManager {
-        return when (keyAlgorithm) {
-            capillary.kmp.KeyAlgorithm.RSA_ECDSA -> {
-                RsaEcdsaEncryptedManager(ins!!)
-            }
-
-            capillary.kmp.KeyAlgorithm.UNRECOGNIZED -> {
-                throw RuntimeException("Requested and UNRECOGNIZED EncryptedManager")
-            }
-        }
+    override fun create(ins: InputStream?): EncryptedManager {
+        return RsaEcdsaEncryptedManager(ins!!)
     }
 
 }

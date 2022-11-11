@@ -22,8 +22,6 @@ import kotlin.coroutines.CoroutineContext
 
 class UserService(coroutineContext: CoroutineContext = Dispatchers.IO, private val usersDataSource: UsersDataSource) :
     UsersServiceGrpcKt.UsersServiceCoroutineImplBase(coroutineContext) {
-
-
     override suspend fun updateSKUser(request: SKUser): SKUser {
         return usersDataSource.updateUser(request.toDBUser())?.toGrpc()
             ?: throw StatusException(Status.NOT_FOUND)
@@ -55,7 +53,7 @@ class UserService(coroutineContext: CoroutineContext = Dispatchers.IO, private v
             val message = "Anmol".toByteArray()
             // To create a ciphertext.
             val encryptedManager: EncryptedManager = getKoin().get(named(KeyAlgorithm.RSA_ECDSA.name))
-            encryptedManager.loadPublicKey(SKUserPublicKey(keyBytes = publicKey, algorithm = ""))
+            encryptedManager.loadPublicKey(SKUserPublicKey(keyBytes = publicKey))
             val ciphertext = encryptedManager.encrypt(message)
             encryptedManager.clearPublicKey()
         }.exceptionOrNull()?.let {
@@ -121,6 +119,6 @@ fun SKUser.toDBUser(userId: String = UUID.randomUUID().toString()): SkUser {
         this.userSince,
         this.phone,
         this.avatarUrl.takeIf { !it.isNullOrEmpty() } ?: "https://picsum.photos/300/300",
-        SKUserPublicKey(keyBytes = this.publicKey.keybytesList.map { it.byte.toByte() }.toByteArray(), algorithm = "")
+        SKUserPublicKey(keyBytes = this.publicKey.keybytesList.map { it.byte.toByte() }.toByteArray())
     )
 }

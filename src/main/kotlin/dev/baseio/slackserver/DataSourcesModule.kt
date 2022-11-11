@@ -27,12 +27,6 @@ val dataSourcesModule = module {
     factory<AuthDataSource> {
         AuthDataSourceImpl(Database.slackDB)
     }
-    factory<UserPushTokenDataSource> {
-        UserPushTokenDataSourceImpl(Database.slackDB)
-    }
-    factory<UserPublicKeysSource> {
-        UserPublicKeysSourceImpl(Database.slackDB)
-    }
     factory<AuthenticationDelegate> {
         AuthenticationDelegateImpl(KoinJavaComponent.getKoin().get(), KoinJavaComponent.getKoin().get())
     }
