@@ -43,9 +43,16 @@ class ChannelsDataSourceImpl(
         .findOne(SkChannel.SkDMChannel::senderId eq receiverId, SkChannel.SkDMChannel::receiverId eq userId)
   }
 
+  override suspend fun getChannelById(channelId: String, workspaceId: String): SkChannel.SkGroupChannel? {
+    return slackCloneDB.getCollection<SkChannel.SkGroupChannel>()
+      .findOne(SkChannel.SkGroupChannel::uuid eq channelId,
+        SkChannel.SkGroupChannel::workspaceId eq workspaceId)
+  }
+
   override suspend fun getChannelByName(channelId: String, workspaceId: String): SkChannel.SkGroupChannel? {
     return slackCloneDB.getCollection<SkChannel.SkGroupChannel>()
-      .findOne(SkChannel.SkGroupChannel::name eq channelId, SkChannel.SkGroupChannel::workspaceId eq workspaceId)
+      .findOne(SkChannel.SkGroupChannel::name eq channelId,
+        SkChannel.SkGroupChannel::workspaceId eq workspaceId)
   }
 
   override suspend fun savePublicChannel(
@@ -62,14 +69,6 @@ class ChannelsDataSourceImpl(
     }
     slackCloneDB.getCollection<SkChannel.SkGroupChannel>()
       .insertOne(request)
-    slackCloneDB.getCollection<SkChannelMember>()
-      .insertOne(
-        SkChannelMember(
-          workspaceId = request.workspaceId,
-          channelId = request.channelId,
-          memberId = adminId,
-        )
-      )
     return slackCloneDB.getCollection<SkChannel.SkGroupChannel>()
       .findOne(SkChannel.SkGroupChannel::uuid eq request.uuid)
   }
@@ -77,20 +76,6 @@ class ChannelsDataSourceImpl(
   override suspend fun saveDMChannel(request: SkChannel.SkDMChannel): SkChannel.SkDMChannel? {
     slackCloneDB.getCollection<SkChannel.SkDMChannel>()
       .insertOne(request)
-    slackCloneDB.getCollection<SkChannelMember>()
-      .insertMany(
-        hashSetOf(
-          SkChannelMember(
-            workspaceId = request.workspaceId,
-            channelId = request.channelId,
-            memberId = request.senderId,
-          ), SkChannelMember(
-            workspaceId = request.workspaceId,
-            channelId = request.channelId,
-            memberId = request.receiverId,
-          )
-        ).toMutableList()
-      )
     return slackCloneDB.getCollection<SkChannel.SkDMChannel>()
       .findOne(SkChannel.SkDMChannel::uuid eq request.uuid)
   }

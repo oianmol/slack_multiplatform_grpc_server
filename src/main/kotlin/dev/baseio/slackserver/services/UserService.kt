@@ -48,25 +48,9 @@ class UserService(coroutineContext: CoroutineContext = Dispatchers.IO, private v
         }
     }
 
-    fun test(publicKey: ByteArray) {
-        kotlin.runCatching {
-            val message = "Anmol".toByteArray()
-            // To create a ciphertext.
-            val encryptedManager: EncryptedManager = getKoin().get(named(KeyAlgorithm.RSA_ECDSA.name))
-            encryptedManager.loadPublicKey(SKUserPublicKey(keyBytes = publicKey))
-            val ciphertext = encryptedManager.encrypt(message)
-            encryptedManager.clearPublicKey()
-        }.exceptionOrNull()?.let {
-            it.printStackTrace()
-        }
-
-    }
-
     override suspend fun getUsers(request: SKWorkspaceChannelRequest): SKUsers {
         return usersDataSource.getUsers(request.workspaceId).map { user ->
-            user.toGrpc().also {
-                test(it.publicKey.keybytesList.map { it.byte.toByte() }.toByteArray())
-            }
+            user.toGrpc()
         }.run {
             SKUsers.newBuilder()
                 .addAllUsers(this)

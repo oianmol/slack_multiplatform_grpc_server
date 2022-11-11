@@ -10,5 +10,6 @@ interface UsersDataSource {
   suspend fun getUser(userId: String, workspaceId: String): SkUser?
   suspend fun updateUser(request: SkUser): SkUser?
   suspend fun getUserWithEmailId(emailId: String, workspaceId: String): SkUser?
-  suspend fun getUserWithUsername(userId: String?, workspaceId: String): SkUser?
+  suspend fun getUserWithUsername(userName: String?, workspaceId: String): SkUser?
+  suspend fun getUserWithUserId(userId: String,workspaceId: String):SkUser?
 }

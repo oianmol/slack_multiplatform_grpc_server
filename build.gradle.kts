@@ -20,7 +20,7 @@ dependencies {
 
 
   implementation(project(":slack_generate_protos"))
-  //implementation(project(":capillary_generate_proto"))
+  implementation(project(":capillary_generate_proto"))
 
   implementation("io.insert-koin:koin-core:3.2.2")
 

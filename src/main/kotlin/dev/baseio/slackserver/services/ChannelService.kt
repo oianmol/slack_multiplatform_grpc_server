@@ -27,13 +27,14 @@ class ChannelService(
 
   override suspend fun inviteUserToChannel(request: SKInviteUserChannel): SKChannelMembers {
     val userData = AUTH_CONTEXT_KEY.get()
-    val user = usersDataSource.getUserWithUsername(request.userId, userData.workspaceId)
-    val channel = channelsDataSource.getChannelByName(request.channelId, userData.workspaceId)
-    user?.let { user ->
+    val user = usersDataSource.getUserWithUsername(userName = request.userId, userData.workspaceId)
+      ?: usersDataSource.getUserWithUserId(userId = request.userId, userData.workspaceId)
+    val channel = channelsDataSource.getChannelById(request.channelId, userData.workspaceId)?:channelsDataSource.getChannelByName(request.channelId, userData.workspaceId)
+    user?.let { safeUser ->
       channel?.let { channel ->
         joinChannel(sKChannelMember {
           this.channelId = channel.channelId
-          this.memberId = user.uuid
+          this.memberId = safeUser.uuid
           this.workspaceId = userData.workspaceId
           this.channelPrivateKey = request.channelPrivateKey
         })
@@ -99,6 +100,7 @@ class ChannelService(
         ?: throw StatusException(Status.NOT_FOUND)
     } ?: run {
       if (authData.userId == request.receiverId) {
+        // creator is the receiver
         return channelsDataSource.saveDMChannel(
           request.copy {
             uuid = UUID.randomUUID().toString()
@@ -204,6 +206,13 @@ fun SkChannelMember.toGRPC(): SKChannelMember {
     this.channelId = member.channelId
     this.workspaceId = member.workspaceId
     this.memberId = member.memberId
+    this.channelPrivateKey = slackPublicKey {
+      this.keybytes.addAll(member.channelEncryptedPrivateKey!!.keyBytes.map {
+        sKByteArrayElement {
+          byte = it.toInt()
+        }
+      })
+    }
   }
 }
 
