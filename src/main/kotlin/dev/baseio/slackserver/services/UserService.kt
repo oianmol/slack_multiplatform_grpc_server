@@ -2,16 +2,21 @@ package dev.baseio.slackserver.services
 
 
 import dev.baseio.slackdata.common.Empty
+import dev.baseio.slackdata.common.KeyAlgorithm
+import dev.baseio.slackdata.common.sKByteArrayElement
 import dev.baseio.slackdata.protos.*
 import dev.baseio.slackserver.data.models.SKUserPublicKey
 import dev.baseio.slackserver.data.models.SkUser
 import dev.baseio.slackserver.data.sources.UsersDataSource
+import dev.baseio.slackserver.security.EncryptedManager
 import dev.baseio.slackserver.services.interceptors.AUTH_CONTEXT_KEY
 import io.grpc.Status
 import io.grpc.StatusException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import org.koin.core.qualifier.named
+import org.koin.java.KoinJavaComponent.getKoin
 import java.util.UUID
 import kotlin.coroutines.CoroutineContext
 
@@ -45,9 +50,25 @@ class UserService(coroutineContext: CoroutineContext = Dispatchers.IO, private v
         }
     }
 
+    fun test(publicKey: ByteArray) {
+        kotlin.runCatching {
+            val message = "Anmol".toByteArray()
+            // To create a ciphertext.
+            val encryptedManager: EncryptedManager = getKoin().get(named(KeyAlgorithm.RSA_ECDSA.name))
+            encryptedManager.loadPublicKey(SKUserPublicKey(keyBytes = publicKey, algorithm = ""))
+            val ciphertext = encryptedManager.encrypt(message)
+            encryptedManager.clearPublicKey()
+        }.exceptionOrNull()?.let {
+            it.printStackTrace()
+        }
+
+    }
+
     override suspend fun getUsers(request: SKWorkspaceChannelRequest): SKUsers {
         return usersDataSource.getUsers(request.workspaceId).map { user ->
-            user.toGrpc()
+            user.toGrpc().also {
+                test(it.publicKey.keybytesList.map { it.byte.toByte() }.toByteArray())
+            }
         }.run {
             SKUsers.newBuilder()
                 .addAllUsers(this)
@@ -76,6 +97,15 @@ fun SkUser.toGrpc(): SKUser {
         .setUsername(this.username)
         .setEmail(this.email)
         .setLocation(this.location)
+        .setPublicKey(
+            SlackPublicKey.newBuilder()
+                .addAllKeybytes(this.publicKey.keyBytes.map {
+                    sKByteArrayElement {
+                        this.byte = it.toInt()
+                    }
+                })
+                .build()
+        )
         .build()
 }
 

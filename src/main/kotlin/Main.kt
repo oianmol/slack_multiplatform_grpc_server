@@ -32,7 +32,7 @@ fun main() {
     val tlsCertFile = object {}.javaClass.getResourceAsStream(TLS_CERT_PATH_OPTION)
     val tlsPrivateKeyFile = object {}.javaClass.getResourceAsStream(TLS_PRIVATE_KEY_PATH_OPTION)
 
-    ServerBuilder.forPort(8443)
+    ServerBuilder.forPort(17600)
         //.useTransportSecurity(tlsCertFile, tlsPrivateKeyFile) // TODO enable this once the kmp library supports this.
         .addService(
             AuthService(

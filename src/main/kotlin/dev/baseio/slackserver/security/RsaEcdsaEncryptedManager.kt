@@ -27,13 +27,8 @@ class RsaEcdsaEncryptedManager(senderSigningKey: InputStream) : EncryptedManager
     }
 
     override fun rawLoadPublicKey(publicKey: ByteArray): HybridEncrypt {
-        val wrappedRsaEcdsaPublicKey: WrappedRsaEcdsaPublicKey = try {
-            WrappedRsaEcdsaPublicKey.parseFrom(publicKey)
-        } catch (e: InvalidProtocolBufferException) {
-            throw GeneralSecurityException("unable to parse public key", e)
-        }
         val recipientPublicKey = KeyFactory.getInstance("RSA").generatePublic(
-            X509EncodedKeySpec(wrappedRsaEcdsaPublicKey.keybytesList.map { it.byte.toByte() }.toByteArray())
+            X509EncodedKeySpec(publicKey)
         )
         return RsaEcdsaHybridEncrypt.Builder()
             .withSenderSigner(senderSigner)

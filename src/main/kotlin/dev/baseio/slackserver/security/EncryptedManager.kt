@@ -9,26 +9,13 @@ import java.io.InputStream
 abstract class EncryptedManager {
     private var encrypter: HybridEncrypt? = null
     private var isLoaded: Boolean = false
-    var slackPublicKey: SlackPublicKey? = null
     fun loadPublicKey(publicKey: SKUserPublicKey) {
-        kotlin.runCatching {
-            slackPublicKey = slackPublicKey {
-                this.keybytes.addAll(publicKey.keyBytes.map { it ->
-                    byteArrayElement {
-                        this.byte = it.toInt()
-                    }
-                })
-            }
-        }
-        slackPublicKey?.let {
-            encrypter = rawLoadPublicKey(publicKey.keyBytes)
-            isLoaded = true
-        }
+        encrypter = rawLoadPublicKey(publicKey.keyBytes)
+        isLoaded = true
     }
 
     fun clearPublicKey() {
         isLoaded = false
-        slackPublicKey = null
         encrypter = null
     }
 
