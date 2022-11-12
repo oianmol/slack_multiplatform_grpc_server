@@ -12,24 +12,30 @@ repositories {
 }
 
 dependencies {
+
   testImplementation(kotlin("test"))
-  testImplementation("app.cash.turbine:turbine:0.12.0")
+  testImplementation("app.cash.turbine:turbine:0.12.1")
   testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.4")
-// https://mvnrepository.com/artifact/io.grpc/grpc-testing
   testImplementation("io.grpc:grpc-testing:1.50.2")
 
-  // grpc
-  implementation("io.grpc:grpc-netty-shaded:1.49.2")
+
   implementation(project(":slack_generate_protos"))
-// https://mvnrepository.com/artifact/com.google.zxing/core
+  implementation(project(":capillary_generate_proto"))
+
+  implementation("io.insert-koin:koin-core:3.2.2")
+
+  implementation("com.google.crypto.tink:tink:1.7.0")
+  implementation("com.google.crypto.tink:apps-webpush:1.7.0")
+
+
+  implementation("io.grpc:grpc-netty-shaded:1.50.2")
   implementation("com.google.zxing:core:3.5.0")
   implementation("com.google.zxing:javase:3.5.0")
 
   //mongodb
-  implementation("org.litote.kmongo:kmongo:4.7.1")
-  implementation("org.litote.kmongo:kmongo-async:4.7.1")
-  implementation("org.litote.kmongo:kmongo-coroutine:4.7.1")
-
+  implementation("org.litote.kmongo:kmongo:4.7.2")
+  implementation("org.litote.kmongo:kmongo-async:4.7.2")
+  implementation("org.litote.kmongo:kmongo-coroutine:4.7.2")
 
   //jwt
   implementation("io.jsonwebtoken:jjwt-api:0.11.5")

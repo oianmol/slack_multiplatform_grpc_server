@@ -1,6 +1,7 @@
 package dev.baseio.slackserver.services
 
 
+import dev.baseio.slackdata.common.Empty
 import dev.baseio.slackdata.protos.*
 import dev.baseio.slackserver.data.sources.AuthDataSource
 import dev.baseio.slackserver.data.models.SkUser
@@ -33,24 +34,6 @@ class AuthService(
 
     override suspend fun resetPassword(request: SKAuthUser): SKUser {
         return super.resetPassword(request)
-    }
-
-    override suspend fun register(request: SKAuthUser): SKAuthResult {
-        return authenticateUser(request, request.user.workspaceId)
-    }
-
-    override suspend fun login(request: SKAuthUser): SKAuthResult {
-        authDataSource.login(request.email, request.password, request.user.workspaceId)?.let {
-            return skAuthResult(it)
-        }
-        return SKAuthResult
-            .newBuilder()
-            .setStatus(
-                SKStatus.newBuilder()
-                    .setInformation("User not found for the workspace!")
-                    .build()
-            )
-            .build()
     }
 
 

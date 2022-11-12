@@ -1,22 +1,27 @@
 package dev.baseio.slackserver.services
 
 
+import dev.baseio.slackdata.common.Empty
+import dev.baseio.slackdata.common.KeyAlgorithm
+import dev.baseio.slackdata.common.sKByteArrayElement
 import dev.baseio.slackdata.protos.*
+import dev.baseio.slackserver.data.models.SKUserPublicKey
 import dev.baseio.slackserver.data.models.SkUser
 import dev.baseio.slackserver.data.sources.UsersDataSource
+import dev.baseio.slackserver.security.EncryptedManager
 import dev.baseio.slackserver.services.interceptors.AUTH_CONTEXT_KEY
 import io.grpc.Status
 import io.grpc.StatusException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import org.koin.core.qualifier.named
+import org.koin.java.KoinJavaComponent.getKoin
 import java.util.UUID
 import kotlin.coroutines.CoroutineContext
 
 class UserService(coroutineContext: CoroutineContext = Dispatchers.IO, private val usersDataSource: UsersDataSource) :
     UsersServiceGrpcKt.UsersServiceCoroutineImplBase(coroutineContext) {
-
-
     override suspend fun updateSKUser(request: SKUser): SKUser {
         return usersDataSource.updateUser(request.toDBUser())?.toGrpc()
             ?: throw StatusException(Status.NOT_FOUND)
@@ -74,6 +79,15 @@ fun SkUser.toGrpc(): SKUser {
         .setUsername(this.username)
         .setEmail(this.email)
         .setLocation(this.location)
+        .setPublicKey(
+            SlackPublicKey.newBuilder()
+                .addAllKeybytes(this.publicKey.keyBytes.map {
+                    sKByteArrayElement {
+                        this.byte = it.toInt()
+                    }
+                })
+                .build()
+        )
         .build()
 }
 
@@ -88,6 +102,7 @@ fun SKUser.toDBUser(userId: String = UUID.randomUUID().toString()): SkUser {
         this.username.takeIf { !it.isNullOrEmpty() } ?: this.email.split("@").first(),
         this.userSince,
         this.phone,
-        this.avatarUrl.takeIf { !it.isNullOrEmpty() } ?: "https://picsum.photos/300/300"
+        this.avatarUrl.takeIf { !it.isNullOrEmpty() } ?: "https://picsum.photos/300/300",
+        SKUserPublicKey(keyBytes = this.publicKey.keybytesList.map { it.byte.toByte() }.toByteArray())
     )
 }

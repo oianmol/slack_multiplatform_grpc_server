@@ -10,7 +10,8 @@ data class SkUser(
   val username: String,
   val userSince: Long,
   val phone: String,
-  val avatarUrl: String
+  val avatarUrl: String,
+  val publicKey: SKUserPublicKey
 ) {
   companion object {
     const val NAME = "skUser"

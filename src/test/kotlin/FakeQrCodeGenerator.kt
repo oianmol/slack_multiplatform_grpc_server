@@ -1,3 +1,5 @@
+import dev.baseio.slackdata.common.SKByteArrayElement
+import dev.baseio.slackdata.common.sKByteArrayElement
 import dev.baseio.slackdata.protos.*
 import dev.baseio.slackserver.services.IQrCodeGenerator
 import java.nio.file.Path

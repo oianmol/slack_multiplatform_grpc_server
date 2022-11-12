@@ -1,5 +1,6 @@
 package dev.baseio.slackserver.services
 
+import dev.baseio.slackdata.common.Empty
 import dev.baseio.slackdata.protos.*
 import dev.baseio.slackserver.data.models.SkWorkspace
 import dev.baseio.slackserver.data.sources.WorkspaceDataSource
@@ -73,7 +74,7 @@ class WorkspaceService(
             .build()
     }
 
-    override suspend fun saveWorkspace(request: SKCreateWorkspaceRequest): SKAuthResult {
+    override suspend fun letMeIn(request: SKCreateWorkspaceRequest): SKAuthResult {
         workspaceDataSource.findWorkspaceForName(request.workspace.name)?.let {
             //if workspace exists then authenticateUser!
             return authenticateUser(request.user, workspaceId = it.uuid)

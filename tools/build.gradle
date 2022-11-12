@@ -1,0 +1,28 @@
+apply plugin: 'application'
+
+dependencies {
+    implementation 'commons-cli:commons-cli:1.5.0'
+    implementation 'com.google.crypto.tink:tink:1.7.0'
+}
+
+startScripts.enabled = false
+
+task ecdsaKeyPairGenerator(type: CreateStartScripts) {
+    mainClassName = 'com.google.capillary.tools.EcdsaKeyPairGenerator'
+    applicationName = 'ecdsa-key-pair-generator'
+    classpath = startScripts.classpath
+    outputDir = startScripts.outputDir
+}
+
+repositories {
+    mavenCentral()
+}
+
+tasks.withType(Copy) {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+applicationDistribution.into('bin') {
+    from(ecdsaKeyPairGenerator)
+    fileMode = 0755
+}

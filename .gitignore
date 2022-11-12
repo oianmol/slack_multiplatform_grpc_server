@@ -3,6 +3,7 @@
 *.class
 build
 build/
+tools/build
 .idea
 .gradle
 .idea/
@@ -127,3 +128,7 @@ hs_err_pid*
 
 !/*.mv.db
 /slackdb.mv.db
+/src/main/resources/ecdsa/sender_signing_key.dat
+/android-key-path/sender_verification_key.dat
+/src/main/resources/tls/tls.key
+/src/main/resources/tls/tls.crt

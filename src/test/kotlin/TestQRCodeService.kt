@@ -75,7 +75,7 @@ class TestQRCodeService {
 
     private suspend fun authorizeTestUser(channel: ManagedChannel): Metadata {
         val workspaceClient = WorkspaceServiceGrpcKt.WorkspaceServiceCoroutineStub(channel)
-        val result = workspaceClient.saveWorkspace(
+        val result = workspaceClient.letMeIn(
             SKCreateWorkspaceRequest.newBuilder()
                 .setUser(SKAuthUser.newBuilder().setEmail("anmol.verma4@gmail.com").setPassword("password"))
                 .setWorkspace(
