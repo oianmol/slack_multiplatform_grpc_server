@@ -97,43 +97,18 @@ class ChannelService(
   }
 
   override suspend fun saveDMChannel(request: SKDMChannel): SKDMChannel {
-    val authData = AUTH_CONTEXT_KEY.get()
-    request.uuid?.takeIf { it.isNotEmpty() }?.let {
-      return channelsDataSource.saveDMChannel(request.copy {
+    val previousChannel = channelsDataSource.checkIfDMChannelExists(request.senderId, request.receiverId)
+    previousChannel?.let {
+      return it.toGRPC()
+    }?: kotlin.run {
+      val channel = request.copy {
+        uuid = UUID.randomUUID().toString()
         createdDate = System.currentTimeMillis()
         modifiedDate = System.currentTimeMillis()
-        senderId = authData.userId
-      }.toDBChannel())?.toGRPC()
+      }.toDBChannel()
+      return channelsDataSource.saveDMChannel(channel)?.toGRPC()
         ?: throw StatusException(Status.NOT_FOUND)
-    } ?: run {
-      if (authData.userId == request.receiverId) {
-        // creator is the receiver
-        return channelsDataSource.saveDMChannel(
-          request.copy {
-            uuid = UUID.randomUUID().toString()
-            senderId = authData.userId
-            receiverId = authData.userId
-            createdDate = System.currentTimeMillis()
-            modifiedDate = System.currentTimeMillis()
-          }.toDBChannel(),
-        )?.toGRPC()
-          ?: throw StatusException(Status.NOT_FOUND)
-      }
-      val previousChannel = channelsDataSource.checkIfDMChannelExists(authData.userId, request.receiverId)
-      previousChannel?.let {
-        return it.toGRPC()
-      } ?: run {
-        val channel = request.copy {
-          uuid = UUID.randomUUID().toString()
-          senderId = authData.userId
-          createdDate = System.currentTimeMillis()
-          modifiedDate = System.currentTimeMillis()
-        }.toDBChannel()
-        return channelsDataSource.saveDMChannel(channel)?.toGRPC()
-          ?: throw StatusException(Status.NOT_FOUND)
-      }
     }
-
   }
 
   override fun registerChangeInChannelMembers(request: SKChannelMember): Flow<SKChannelMemberChangeSnapshot> {
