@@ -29,7 +29,12 @@ class ChannelService(
     val userData = AUTH_CONTEXT_KEY.get()
     val user = usersDataSource.getUserWithUsername(userName = request.userId, userData.workspaceId)
       ?: usersDataSource.getUserWithUserId(userId = request.userId, userData.workspaceId)
-    val channel = channelsDataSource.getChannelById(request.channelId, userData.workspaceId)?:channelsDataSource.getChannelByName(request.channelId, userData.workspaceId)
+    val channel =
+      channelsDataSource.getChannelById(request.channelId, userData.workspaceId) ?:
+      channelsDataSource.getChannelByName(
+        request.channelId,
+        userData.workspaceId
+      )
     user?.let { safeUser ->
       channel?.let { channel ->
         joinChannel(sKChannelMember {
