@@ -43,14 +43,18 @@ class ChannelsDataSourceImpl(
         .findOne(SkChannel.SkDMChannel::senderId eq receiverId, SkChannel.SkDMChannel::receiverId eq userId)
   }
 
-  override suspend fun getChannelById(channelId: String, workspaceId: String): SkChannel.SkGroupChannel? {
+  override suspend fun getChannelById(channelId: String, workspaceId: String): SkChannel? {
     return slackCloneDB.getCollection<SkChannel.SkGroupChannel>()
+      .findOne(SkChannel.SkGroupChannel::uuid eq channelId,
+        SkChannel.SkGroupChannel::workspaceId eq workspaceId) ?: slackCloneDB.getCollection<SkChannel.SkDMChannel>()
       .findOne(SkChannel.SkGroupChannel::uuid eq channelId,
         SkChannel.SkGroupChannel::workspaceId eq workspaceId)
   }
 
-  override suspend fun getChannelByName(channelId: String, workspaceId: String): SkChannel.SkGroupChannel? {
+  override suspend fun getChannelByName(channelId: String, workspaceId: String): SkChannel? {
     return slackCloneDB.getCollection<SkChannel.SkGroupChannel>()
+      .findOne(SkChannel.SkGroupChannel::name eq channelId,
+        SkChannel.SkGroupChannel::workspaceId eq workspaceId)?:slackCloneDB.getCollection<SkChannel.SkDMChannel>()
       .findOne(SkChannel.SkGroupChannel::name eq channelId,
         SkChannel.SkGroupChannel::workspaceId eq workspaceId)
   }

@@ -12,9 +12,9 @@ interface ChannelsDataSource {
   suspend fun getAllChannels(workspaceId: String, userId: String): List<SkChannel.SkGroupChannel>
   suspend fun getAllDMChannels(workspaceId: String, userId: String): List<SkChannel.SkDMChannel>
   suspend fun checkIfDMChannelExists(userId: String, receiverId: String?):SkChannel.SkDMChannel?
-  suspend fun getChannelById(channelId: String, workspaceId: String): SkChannel.SkGroupChannel?
+  suspend fun getChannelById(channelId: String, workspaceId: String): SkChannel?
 
-  suspend fun getChannelByName(channelId: String, workspaceId: String): SkChannel.SkGroupChannel?
+  suspend fun getChannelByName(channelId: String, workspaceId: String): SkChannel?
   fun getChannelMemberChangeStream(
     workspaceId: String,
     memberId: String

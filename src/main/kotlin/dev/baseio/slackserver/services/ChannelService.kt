@@ -47,6 +47,8 @@ class ChannelService(
           this.channelId = channel.channelId
           this.workspaceId = userData.workspaceId
         })
+      }?: run {
+        throw StatusException(Status.NOT_FOUND)
       }
 
     } ?: run {
