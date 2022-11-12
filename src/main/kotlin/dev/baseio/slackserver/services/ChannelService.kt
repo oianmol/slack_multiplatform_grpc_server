@@ -102,7 +102,7 @@ class ChannelService(
       return it.toGRPC()
     }?: kotlin.run {
       val channel = request.copy {
-        uuid = UUID.randomUUID().toString()
+        uuid = request.uuid.takeIf { it.isNotEmpty() }?: UUID.randomUUID().toString()
         createdDate = System.currentTimeMillis()
         modifiedDate = System.currentTimeMillis()
       }.toDBChannel()
