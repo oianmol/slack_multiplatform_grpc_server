@@ -36,6 +36,11 @@ class ChannelsDataSourceImpl(
       .toList()
   }
 
+  override suspend fun checkIfGroupExisits(workspaceId: String?, name: String?): Boolean {
+    return slackCloneDB.getCollection<SkChannel.SkGroupChannel>()
+      .findOne(SkChannel.SkGroupChannel::workspaceId eq workspaceId, SkChannel.SkGroupChannel::name eq name) != null
+  }
+
   override suspend fun checkIfDMChannelExists(userId: String, receiverId: String?): SkChannel.SkDMChannel? {
     return slackCloneDB.getCollection<SkChannel.SkDMChannel>()
       .findOne(SkChannel.SkDMChannel::senderId eq userId, SkChannel.SkDMChannel::receiverId eq receiverId)
@@ -63,14 +68,6 @@ class ChannelsDataSourceImpl(
     request: SkChannel.SkGroupChannel,
     adminId: String
   ): SkChannel.SkGroupChannel? {
-    val previousChannels = slackCloneDB.getCollection<SkChannel.SkGroupChannel>()
-      .find(
-        SkChannel.SkGroupChannel::name eq request.name,
-        SkChannel.SkGroupChannel::workspaceId eq request.workspaceId
-      )
-    if (previousChannels.toList().isNotEmpty()) {
-      throw StatusException(Status.ALREADY_EXISTS)
-    }
     slackCloneDB.getCollection<SkChannel.SkGroupChannel>()
       .insertOne(request)
     return slackCloneDB.getCollection<SkChannel.SkGroupChannel>()

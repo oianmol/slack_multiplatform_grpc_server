@@ -19,5 +19,7 @@ interface ChannelsDataSource {
     workspaceId: String,
     memberId: String
   ): Flow<Pair<SkChannelMember?, SkChannelMember?>>
+
+  suspend fun checkIfGroupExisits(workspaceId: String?, name: String?): Boolean
 }
 
