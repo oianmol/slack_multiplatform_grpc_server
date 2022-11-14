@@ -1,6 +1,7 @@
 package dev.baseio.slackserver.services
 
 import dev.baseio.slackdata.protos.*
+import dev.baseio.slackserver.communications.NotificationType
 import dev.baseio.slackserver.communications.PNSender
 import dev.baseio.slackserver.data.sources.MessagesDataSource
 import dev.baseio.slackserver.data.models.SkMessage
@@ -25,7 +26,7 @@ class MessagingService(
   override suspend fun updateMessage(request: SKMessage): SKMessage {
     val authData = AUTH_CONTEXT_KEY.get()
     return messagesDataSource.updateMessage(request.toDBMessage())?.toGrpc()?.also {
-      pushNotificationForMessages.sendPushNotifications(request.toDBMessage(), authData.userId)
+      pushNotificationForMessages.sendPushNotifications(request.toDBMessage(), authData.userId,NotificationType.NEW_MESSAGE)
     }
       ?: throw StatusException(Status.NOT_FOUND)
   }
@@ -37,7 +38,7 @@ class MessagingService(
       .toGrpc().also {
         pushNotificationForMessages.sendPushNotifications(
           request = request.toDBMessage(),
-          senderUserId = authData.userId
+          senderUserId = authData.userId, NotificationType.NEW_MESSAGE
         )
       }
   }

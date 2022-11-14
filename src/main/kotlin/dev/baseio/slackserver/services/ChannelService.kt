@@ -83,11 +83,7 @@ class ChannelService(
             channel.copy(channelPublicKey = SKUserPublicKey(publicKeyChannel)),
             adminId = authData.userId
         )?.toGRPC()
-        channelPNSender.sendPushNotifications(
-            channel,
-            authData.userId,
-            NotificationType.CHANNEL_CREATED
-        )
+
         inviteUserWithAuthData(sKInviteUserChannel {
             this.channelId = channel.uuid
             this.userId = authData.userId
@@ -99,6 +95,11 @@ class ChannelService(
                     )!!.publicKey
                 )
         }, authData)
+        channelPNSender.sendPushNotifications(
+            channel,
+            authData.userId,
+            NotificationType.CHANNEL_CREATED
+        )
         keyManager.rawDeleteKeyPair()
         return saved ?: throw StatusException(Status.NOT_FOUND)
     }
@@ -114,11 +115,6 @@ class ChannelService(
             val publicKeyChannel = keyManager.getPublicKey().encoded
             val channel = dbChannel(request, publicKeyChannel)
             val savedChannel = channelsDataSource.saveDMChannel(channel)?.toGRPC()!!
-            channelPNSender.sendPushNotifications(
-                channel,
-                authData.userId,
-                NotificationType.DM_CHANNEL_CREATED
-            )
             inviteUserWithAuthData(sKInviteUserChannel {
                 this.channelId = savedChannel.uuid
                 this.userId = request.senderId
@@ -141,6 +137,11 @@ class ChannelService(
                         )!!.publicKey
                     )
             }, authData)
+            channelPNSender.sendPushNotifications(
+                channel,
+                authData.userId,
+                NotificationType.DM_CHANNEL_CREATED
+            )
             keyManager.rawDeleteKeyPair()
             return savedChannel
         }

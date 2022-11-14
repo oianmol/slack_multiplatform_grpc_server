@@ -12,5 +12,6 @@ enum class NotificationType(val titleMessage: String, val bodyMessage: String) {
     ADDED_CHANNEL(
         titleMessage = "Added to Channel",
         bodyMessage = "You were added to a slack channel by %s"
-    )
+    ),
+    NEW_MESSAGE(titleMessage = "New Message", bodyMessage = "You have received a new message. %s")
 }

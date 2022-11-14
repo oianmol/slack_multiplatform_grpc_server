@@ -4,10 +4,7 @@ import com.google.firebase.messaging.*
 import dev.baseio.slackserver.data.models.IDataMap
 import dev.baseio.slackserver.data.models.SKUserPushToken
 import dev.baseio.slackserver.data.models.SkUser
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 
 abstract class PNSender<T : IDataMap> {
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -16,7 +13,12 @@ abstract class PNSender<T : IDataMap> {
         coroutineScope.launch {
             val sender = getSender(senderUserId, request)
             val pushTokens = getPushTokens(request)
-            sender?.let { sendMessagesNow(pushTokens, request, it, notificationType) }
+            sender?.let { it ->
+                pushTokens.takeIf { it.isNotEmpty() }?.let { pushTokens ->
+                    sendMessagesNow(pushTokens, request, it, notificationType)
+                }
+            }
+
         }
     }
 
@@ -32,9 +34,6 @@ abstract class PNSender<T : IDataMap> {
             .setToken(userToken)
             .setWebpushConfig(
                 webpushConfig(notificationType, resourceName)
-            )
-            .setApnsConfig(
-                apnsConfig(dataMap)
             )
             .setAndroidConfig(
                 androidConfig(dataMap, notificationType, resourceName)

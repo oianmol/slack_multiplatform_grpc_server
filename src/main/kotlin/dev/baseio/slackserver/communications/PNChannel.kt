@@ -19,10 +19,12 @@ class PNChannel(
     }
 
     override suspend fun getPushTokens(request: SkChannel): List<SKUserPushToken> {
-        return channelMemberDataSource.getMembers(request.workspaceId, request.channelId).map { it.memberId }
+        val tokens = mutableListOf<SKUserPushToken>()
+        channelMemberDataSource.getMembers(request.workspaceId, request.channelId).map { it.memberId }
             .let { skChannelMembers ->
-                userPushTokenDataSource.getPushTokensFor(skChannelMembers)
+                tokens.addAll(userPushTokenDataSource.getPushTokensFor(skChannelMembers))
             }
+        return tokens
     }
 
 

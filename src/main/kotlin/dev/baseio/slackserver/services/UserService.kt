@@ -2,21 +2,17 @@ package dev.baseio.slackserver.services
 
 
 import dev.baseio.slackdata.common.Empty
-import dev.baseio.slackdata.common.KeyAlgorithm
 import dev.baseio.slackdata.common.sKByteArrayElement
 import dev.baseio.slackdata.protos.*
 import dev.baseio.slackserver.data.models.SKUserPublicKey
 import dev.baseio.slackserver.data.models.SkUser
 import dev.baseio.slackserver.data.sources.UsersDataSource
-import dev.baseio.slackserver.security.EncryptedManager
 import dev.baseio.slackserver.services.interceptors.AUTH_CONTEXT_KEY
 import io.grpc.Status
 import io.grpc.StatusException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import org.koin.core.qualifier.named
-import org.koin.java.KoinJavaComponent.getKoin
 import java.util.UUID
 import kotlin.coroutines.CoroutineContext
 

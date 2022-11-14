@@ -3,6 +3,7 @@ package dev.baseio.slackserver.data.impl
 import dev.baseio.slackserver.data.models.SKUserPushToken
 import dev.baseio.slackserver.data.sources.UserPushTokenDataSource
 import org.litote.kmongo.coroutine.CoroutineDatabase
+import org.litote.kmongo.coroutine.insertOne
 import org.litote.kmongo.eq
 import org.litote.kmongo.`in`
 
@@ -16,7 +17,7 @@ class UserPushTokenDataSourceImpl(private val coroutineDatabase: CoroutineDataba
             coroutineDatabase.getCollection<SKUserPushToken>()
                 .find(SKUserPushToken::token eq toSkUserPushToken.token).toList().isNotEmpty()
         if(!exists){
-            coroutineDatabase.getCollection<SKUserPushToken>().save(toSkUserPushToken)
+            coroutineDatabase.getCollection<SKUserPushToken>().insertOne(toSkUserPushToken)
         }
     }
 }
