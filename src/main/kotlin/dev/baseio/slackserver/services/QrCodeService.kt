@@ -35,8 +35,9 @@ class QrCodeService(
 ) : QrCodeServiceGrpcKt.QrCodeServiceCoroutineImplBase(coroutineContext) {
 
     override fun generateQRCode(request: SKQrCodeGenerator): Flow<SKQrCodeResponse> {
+        val user = AUTH_CONTEXT_KEY.get()
         return channelFlow {
-            val data = qrCodeGenerator.randomToken()
+            val data = user.userId // bad impl, try something secure
             val result = qrCodeGenerator.process(data)
             send(result.first) // first send the QR code!
             qrCodeGenerator.put(data,result) { // when authenticated send the auth result
@@ -56,8 +57,7 @@ class QrCodeService(
 
     override suspend fun verifyQrCode(request: SKQRAuthVerify): SKAuthResult {
         qrCodeGenerator.find(request.token)?.let {
-            val user = AUTH_CONTEXT_KEY.get()
-            val skUser = database.getCollection<SkUser>().findOne(SkUser::uuid eq user.userId)
+            val skUser = database.getCollection<SkUser>().findOne(SkUser::uuid eq request.token)
             it.first.deleteIfExists()
             val result = skAuthResult(skUser)
             qrCodeGenerator.notifyAuthenticated(result, request)
