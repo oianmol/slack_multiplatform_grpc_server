@@ -2,6 +2,8 @@ package dev.baseio.slackserver.services
 
 import dev.baseio.slackdata.common.sKByteArrayElement
 import dev.baseio.slackdata.protos.*
+import dev.baseio.slackserver.communications.NotificationType
+import dev.baseio.slackserver.communications.PNSender
 import dev.baseio.slackserver.data.models.SKUserPublicKey
 import dev.baseio.slackserver.data.sources.ChannelsDataSource
 import dev.baseio.slackserver.data.models.SkChannel
@@ -24,7 +26,9 @@ class ChannelService(
     coroutineContext: CoroutineContext = Dispatchers.IO,
     private val channelsDataSource: ChannelsDataSource,
     private val channelMemberDataSource: ChannelMemberDataSource,
-    private val usersDataSource: UsersDataSource
+    private val usersDataSource: UsersDataSource,
+    private val channelPNSender: PNSender<SkChannel>,
+    private val channelMemberPNSender: PNSender<SkChannelMember>,
 ) :
     ChannelsServiceGrpcKt.ChannelsServiceCoroutineImplBase(coroutineContext) {
 
@@ -33,38 +37,6 @@ class ChannelService(
         return inviteUserWithAuthData(request, userData)
     }
 
-    private suspend fun inviteUserWithAuthData(
-        request: SKInviteUserChannel,
-        userData: AuthData
-    ): SKChannelMembers {
-        val user = usersDataSource.getUserWithUsername(userName = request.userId, userData.workspaceId)
-            ?: usersDataSource.getUserWithUserId(userId = request.userId, userData.workspaceId)
-        val channel =
-            channelsDataSource.getChannelById(request.channelId, userData.workspaceId)
-                ?: channelsDataSource.getChannelByName(
-                    request.channelId,
-                    userData.workspaceId
-                )
-        user?.let { safeUser ->
-            channel?.let { channel ->
-                joinChannel(sKChannelMember {
-                    this.channelId = channel.channelId
-                    this.memberId = safeUser.uuid
-                    this.workspaceId = userData.workspaceId
-                    this.channelPrivateKey = request.channelPrivateKey
-                })
-                return channelMembers(sKWorkspaceChannelRequest {
-                    this.channelId = channel.channelId
-                    this.workspaceId = userData.workspaceId
-                })
-            } ?: run {
-                throw StatusException(Status.NOT_FOUND)
-            }
-
-        } ?: run {
-            throw StatusException(Status.NOT_FOUND)
-        }
-    }
 
     override suspend fun joinChannel(request: SKChannelMember): SKChannelMember {
         channelMemberDataSource.addMembers(listOf(request.toDBMember()))
@@ -111,6 +83,7 @@ class ChannelService(
             channel.copy(channelPublicKey = SKUserPublicKey(publicKeyChannel)),
             adminId = authData.userId
         )?.toGRPC()
+
         inviteUserWithAuthData(sKInviteUserChannel {
             this.channelId = channel.uuid
             this.userId = authData.userId
@@ -122,6 +95,11 @@ class ChannelService(
                     )!!.publicKey
                 )
         }, authData)
+        channelPNSender.sendPushNotifications(
+            channel,
+            authData.userId,
+            NotificationType.CHANNEL_CREATED
+        )
         keyManager.rawDeleteKeyPair()
         return saved ?: throw StatusException(Status.NOT_FOUND)
     }
@@ -159,8 +137,53 @@ class ChannelService(
                         )!!.publicKey
                     )
             }, authData)
+            channelPNSender.sendPushNotifications(
+                channel,
+                authData.userId,
+                NotificationType.DM_CHANNEL_CREATED
+            )
             keyManager.rawDeleteKeyPair()
             return savedChannel
+        }
+    }
+
+    private suspend fun inviteUserWithAuthData(
+        request: SKInviteUserChannel,
+        userData: AuthData
+    ): SKChannelMembers {
+        val user = usersDataSource.getUserWithUsername(userName = request.userId, userData.workspaceId)
+            ?: usersDataSource.getUserWithUserId(userId = request.userId, userData.workspaceId)
+        val channel =
+            channelsDataSource.getChannelById(request.channelId, userData.workspaceId)
+                ?: channelsDataSource.getChannelByName(
+                    request.channelId,
+                    userData.workspaceId
+                )
+        user?.let { safeUser ->
+            channel?.let { channel ->
+                joinChannel(sKChannelMember {
+                    this.channelId = channel.channelId
+                    this.memberId = safeUser.uuid
+                    this.workspaceId = userData.workspaceId
+                    this.channelPrivateKey = request.channelPrivateKey
+                }.also {
+                    channelMemberPNSender.sendPushNotifications(
+                        it.toDBMember(),
+                        userData.userId,
+                        NotificationType.ADDED_CHANNEL
+                    )
+                })
+
+                return channelMembers(sKWorkspaceChannelRequest {
+                    this.channelId = channel.channelId
+                    this.workspaceId = userData.workspaceId
+                })
+            } ?: run {
+                throw StatusException(Status.NOT_FOUND)
+            }
+
+        } ?: run {
+            throw StatusException(Status.NOT_FOUND)
         }
     }
 
