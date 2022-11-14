@@ -1,7 +1,7 @@
 package dev.baseio.slackserver.services
 
 import dev.baseio.slackdata.protos.*
-import dev.baseio.slackserver.communications.PushNotificationSender
+import dev.baseio.slackserver.communications.PNSender
 import dev.baseio.slackserver.data.sources.MessagesDataSource
 import dev.baseio.slackserver.data.models.SkMessage
 import dev.baseio.slackserver.services.interceptors.AUTH_CONTEXT_KEY
@@ -15,11 +15,11 @@ import java.util.UUID
 import kotlin.coroutines.CoroutineContext
 
 class MessagingService(
-  coroutineContext: CoroutineContext = Dispatchers.IO,
-  private val messagesDataSource: MessagesDataSource,
-  private val pushNotificationForMessages: PushNotificationSender<SkMessage>,
+    coroutineContext: CoroutineContext = Dispatchers.IO,
+    private val messagesDataSource: MessagesDataSource,
+    private val pushNotificationForMessages: PNSender<SkMessage>,
 
-  ) : MessagesServiceGrpcKt.MessagesServiceCoroutineImplBase(coroutineContext) {
+    ) : MessagesServiceGrpcKt.MessagesServiceCoroutineImplBase(coroutineContext) {
 
 
   override suspend fun updateMessage(request: SKMessage): SKMessage {
