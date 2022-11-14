@@ -1,32 +1,28 @@
+import com.google.auth.oauth2.GoogleCredentials
 import com.google.crypto.tink.aead.AeadConfig
-import com.google.crypto.tink.proto.Ecdsa
 import com.google.crypto.tink.signature.SignatureConfig
-import dev.baseio.slackdata.common.KeyAlgorithm
+import com.google.firebase.FirebaseApp
+import com.google.firebase.FirebaseOptions
 import dev.baseio.slackserver.data.database.Database
 import dev.baseio.slackserver.dataSourcesModule
-import dev.baseio.slackserver.security.EncryptedManagerFactory
 import dev.baseio.slackserver.services.*
 import dev.baseio.slackserver.services.interceptors.AuthInterceptor
 import io.grpc.ServerBuilder
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
-import org.koin.core.qualifier.named
-import org.koin.dsl.module
+
 
 const val TLS_CERT_PATH_OPTION = "tls/tls.crt"
 const val TLS_PRIVATE_KEY_PATH_OPTION = "tls/tls.key"
-const val SENDER_SIGNING_KEY = "ecdsa/sender_signing_key.dat"
 
 fun main() {
-    com.google.crypto.tink.Config.register(SignatureConfig.LATEST);
-    AeadConfig.register()
+
+    initializeTink()
+
+    initializeFCM()
+
     val koinApplication = startKoin {
-        modules(dataSourcesModule, module {
-            factory(qualifier = named(KeyAlgorithm.RSA_ECDSA.name)) {
-                val ins = Ecdsa::javaClass.javaClass.getResourceAsStream(SENDER_SIGNING_KEY)
-                EncryptedManagerFactory().create(ins)
-            }
-        })
+        modules(dataSourcesModule)
     }
     // The {certificate, private key} pair to use for gRPC TLS.
     val tlsCertFile = object {}.javaClass.getResourceAsStream(TLS_CERT_PATH_OPTION)
@@ -62,4 +58,17 @@ fun main() {
         .awaitTermination()
 
     stopKoin()
+}
+
+fun initializeFCM() {
+    val options = FirebaseOptions.builder()
+        .setCredentials(GoogleCredentials.getApplicationDefault())
+        .build()
+
+    FirebaseApp.initializeApp(options)
+}
+
+fun initializeTink() {
+    com.google.crypto.tink.Config.register(SignatureConfig.LATEST);
+    AeadConfig.register()
 }

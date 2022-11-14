@@ -9,7 +9,15 @@ data class SkMessage(
   val createdDate: Long,
   val modifiedDate: Long,
   var isDeleted: Boolean = false
-) {
+) :IDataMap{
+  override fun provideMap(): Map<String, String> {
+    return hashMapOf<String, String>().apply {
+      put("message", message.map { it }.toByteArray().decodeToString())
+      put("channelId", channelId)
+      put("type", "message")
+    }
+  }
+
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     if (javaClass != other?.javaClass) return false

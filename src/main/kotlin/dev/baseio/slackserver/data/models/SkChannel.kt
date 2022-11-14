@@ -6,7 +6,7 @@ sealed class SkChannel(
   val workspaceId: String,
   val channelId: String,
   val publicKey: SKUserPublicKey,
-) {
+) : IDataMap {
   data class SkDMChannel(
     val uuid: String,
     val workId: String,
@@ -16,7 +16,16 @@ sealed class SkChannel(
     val modifiedDate: Long = System.currentTimeMillis(),
     val deleted: Boolean,
     val channelPublicKey: SKUserPublicKey,
-  ) : SkChannel(workId, uuid, channelPublicKey)
+  ) : SkChannel(workId, uuid, channelPublicKey) {
+    override fun provideMap(): Map<String, String> {
+      return hashMapOf<String, String>().apply {
+        put("uuid", uuid)
+        put("workspaceId", workId)
+        put("senderId", senderId)
+        put("receiverId", receiverId)
+      }
+    }
+  }
 
   data class SkGroupChannel(
     val uuid: String,
@@ -27,7 +36,15 @@ sealed class SkChannel(
     var avatarUrl: String?,
     val deleted: Boolean,
     val channelPublicKey: SKUserPublicKey,
-  ) : SkChannel(workId, uuid, channelPublicKey)
+  ) : SkChannel(workId, uuid, channelPublicKey) {
+    override fun provideMap(): Map<String, String> {
+      return hashMapOf<String, String>().apply {
+        put("uuid", uuid)
+        put("workspaceId", workId)
+        put("name", name)
+      }
+    }
+  }
 }
 
 
