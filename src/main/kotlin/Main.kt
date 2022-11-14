@@ -3,7 +3,6 @@ import com.google.crypto.tink.aead.AeadConfig
 import com.google.crypto.tink.signature.SignatureConfig
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
-import dev.baseio.slackserver.data.database.Database
 import dev.baseio.slackserver.data.models.SkChannel
 import dev.baseio.slackserver.data.models.SkChannelMember
 import dev.baseio.slackserver.data.models.SkMessage
@@ -35,11 +34,11 @@ fun main() {
         //.useTransportSecurity(tlsCertFile, tlsPrivateKeyFile) // TODO enable this once the kmp library supports this.
         .addService(
             AuthService(
-                authDataSource = getKoin().get(),
+                pushTokenDataSource = getKoin().get(),
                 authenticationDelegate = getKoin().get()
             )
         )
-        .addService(QrCodeService(database = Database.slackDB, qrCodeGenerator = getKoin().get()))
+        .addService(QrCodeService(database = getKoin().get(), qrCodeGenerator = getKoin().get()))
         .addService(
             WorkspaceService(
                 workspaceDataSource = getKoin().get(),
