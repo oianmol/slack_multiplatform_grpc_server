@@ -1,5 +1,7 @@
 package dev.baseio.slackserver.data.models
 
+import java.util.Base64
+
 data class SkMessage(
   val uuid: String,
   val workspaceId: String,
@@ -10,11 +12,16 @@ data class SkMessage(
   val modifiedDate: Long,
   var isDeleted: Boolean = false
 ) :IDataMap{
-  override fun provideMap(): Map<String, String> {
+  override fun provideMap(): HashMap<String, String> {
     return hashMapOf<String, String>().apply {
-      put("message", message.map { it }.toByteArray().decodeToString())
-      put("channelId", channelId)
-      put("type", "message")
+      put("uuid",uuid)
+      put("workspaceId",workspaceId)
+      put("channelId",channelId)
+      put("sender",sender)
+      put("createdDate",createdDate.toString())
+      put("modifiedDate",modifiedDate.toString())
+      put("isDeleted",isDeleted.toString())
+      put("message", Base64.getEncoder().encodeToString(message))
     }
   }
 

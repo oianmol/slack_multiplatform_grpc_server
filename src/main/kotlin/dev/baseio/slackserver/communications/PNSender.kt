@@ -12,7 +12,7 @@ abstract class PNSender<T : IDataMap> {
     fun sendPushNotifications(request: T, senderUserId: String, notificationType: NotificationType) {
         coroutineScope.launch {
             val sender = getSender(senderUserId, request)
-            val pushTokens = getPushTokens(request)
+            val pushTokens = getPushTokens(request,senderUserId)
             sender?.let { it ->
                 pushTokens.takeIf { it.isNotEmpty() }?.let { pushTokens ->
                     sendMessagesNow(pushTokens, request, it, notificationType)
@@ -30,6 +30,7 @@ abstract class PNSender<T : IDataMap> {
         notificationType: NotificationType
     ): Message {
         val dataMap = model.provideMap()
+        dataMap["type"] = notificationType.type
         return Message.builder()
             .setToken(userToken)
             .setWebpushConfig(
@@ -86,10 +87,10 @@ abstract class PNSender<T : IDataMap> {
         sender: SkUser,
         notificationType: NotificationType
     ) {
-        FirebaseMessaging.getInstance().sendAll(pushTokens.map { skUserPushToken ->
+       FirebaseMessaging.getInstance().sendAll(pushTokens.map { skUserPushToken ->
             toFirebaseMessage(request, skUserPushToken.token, sender.name, notificationType)
         })
     }
 
-    abstract suspend fun getPushTokens(request: T): List<SKUserPushToken>
+    abstract suspend fun getPushTokens(request: T, senderUserId: String): List<SKUserPushToken>
 }

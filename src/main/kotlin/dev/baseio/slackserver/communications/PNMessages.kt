@@ -17,9 +17,10 @@ class PNMessages(
         return usersDataSource.getUser(senderUserId, request.workspaceId)!!
     }
 
-    override suspend fun getPushTokens(request: SkMessage): List<SKUserPushToken> {
+    override suspend fun getPushTokens(request: SkMessage, senderUserId: String): List<SKUserPushToken> {
         val tokens = mutableListOf<SKUserPushToken>()
         channelMemberDataSource.getMembers(request.workspaceId, request.channelId).map { it.memberId }
+            .filter { it != senderUserId }
             .let { skChannelMembers ->
                 tokens.addAll(userPushTokenDataSource.getPushTokensFor(skChannelMembers))
             }

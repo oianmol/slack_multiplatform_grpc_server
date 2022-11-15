@@ -14,7 +14,7 @@ class PNChannelMember(
         return usersDataSource.getUser(senderUserId, request.workspaceId)
     }
 
-    override suspend fun getPushTokens(request: SkChannelMember): List<SKUserPushToken> {
+    override suspend fun getPushTokens(request: SkChannelMember, senderUserId: String): List<SKUserPushToken> {
         return userPushTokenDataSource.getPushTokensFor(listOf(request.memberId))
     }
 }

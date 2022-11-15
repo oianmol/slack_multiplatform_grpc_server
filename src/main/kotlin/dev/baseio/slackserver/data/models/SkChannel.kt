@@ -1,6 +1,7 @@
 package dev.baseio.slackserver.data.models
 
 import java.util.*
+import kotlin.collections.HashMap
 
 sealed class SkChannel(
     val workspaceId: String,
@@ -17,13 +18,12 @@ sealed class SkChannel(
         val deleted: Boolean,
         val channelPublicKey: SKUserPublicKey,
     ) : SkChannel(workId, uuid, channelPublicKey) {
-        override fun provideMap(): Map<String, String> {
+        override fun provideMap(): HashMap<String, String> {
             return hashMapOf<String, String>().apply {
                 put("uuid", uuid)
                 put("workspaceId", workId)
                 put("senderId", senderId)
                 put("receiverId", receiverId)
-                put("type", "")
             }
         }
     }
@@ -38,7 +38,7 @@ sealed class SkChannel(
         val deleted: Boolean,
         val channelPublicKey: SKUserPublicKey,
     ) : SkChannel(workId, uuid, channelPublicKey) {
-        override fun provideMap(): Map<String, String> {
+        override fun provideMap(): HashMap<String, String> {
             return hashMapOf<String, String>().apply {
                 put("uuid", uuid)
                 put("workspaceId", workId)
@@ -56,7 +56,7 @@ data class SkChannelMember(
     val channelEncryptedPrivateKey: SKUserPublicKey? = null
 ) : IDataMap {
     var uuid: String = UUID.randomUUID().toString()
-    override fun provideMap(): Map<String, String> {
+    override fun provideMap(): HashMap<String, String> {
         return hashMapOf<String, String>().apply {
             put("uuid", uuid)
             put("channelId", channelId)
