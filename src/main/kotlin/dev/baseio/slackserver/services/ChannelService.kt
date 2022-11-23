@@ -111,7 +111,6 @@ class ChannelService(
             return it.toGRPC()
         } ?: kotlin.run {
             val keyManager = RsaEcdsaKeyManager(request.uuid)
-
             val publicKeyChannel = keyManager.getPublicKey().encoded
             val channel = dbChannel(request, publicKeyChannel)
             val savedChannel = channelsDataSource.saveDMChannel(channel)?.toGRPC()!!

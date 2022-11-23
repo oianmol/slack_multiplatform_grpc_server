@@ -71,7 +71,7 @@ class ChannelMemberDataSourceImpl(private val database: CoroutineDatabase) : Cha
         database.getCollection<SkChannelMember>()
           .updateOne(
             match(
-              Document.parse("{'fullDocument.memberId': '${existingChannelMember.workspaceId}'}"),
+              Document.parse("{'fullDocument.memberId': '${existingChannelMember.memberId}'}"),
               Document.parse("{'fullDocument.channelId': '${existingChannelMember.channelId}'}"),
               Document.parse("{'fullDocument.workspaceId': '${existingChannelMember.workspaceId}'}"),
             ), channelMember
