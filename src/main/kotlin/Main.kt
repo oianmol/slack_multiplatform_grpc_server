@@ -10,16 +10,21 @@ import dev.baseio.slackserver.dataSourcesModule
 import dev.baseio.slackserver.services.*
 import dev.baseio.slackserver.services.interceptors.AuthInterceptor
 import io.grpc.ServerBuilder
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.qualifier.named
 import org.koin.java.KoinJavaComponent.getKoin
+import java.security.Security
 
 
 const val TLS_CERT_PATH_OPTION = "tls/tls.crt"
 const val TLS_PRIVATE_KEY_PATH_OPTION = "tls/tls.key"
 
 fun main() {
+    Security.addProvider(
+        BouncyCastleProvider()
+    )
     initializeTink()
 
     initializeFCM()

@@ -1,7 +1,6 @@
 package dev.baseio.slackserver.security
 
 import java.io.*
-import java.math.BigInteger
 import java.security.*
 import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey
@@ -25,12 +24,20 @@ object JVMKeyStoreRsaUtils {
 
     val rsaPublicKey: RSAPublicKey = keyPair.public as RSAPublicKey
     val rsaPrivateKey: RSAPrivateKey = keyPair.private as RSAPrivateKey
-
-    val pkcs8EncodedKeySpec = PKCS8EncodedKeySpec(rsaPrivateKey.encoded)
     val kf = KeyFactory.getInstance("RSA")
-    val privateKey = kf.generatePrivate(pkcs8EncodedKeySpec) as RSAPrivateKey
-    saveToFile(pubicKeyFile(chainId), rsaPublicKey.modulus, rsaPublicKey.publicExponent)
-    saveToFile(privateKeyFile(chainId), privateKey.modulus, privateKey.privateExponent)
+
+    with(rsaPrivateKey.encoded){
+      val pkcs8EncodedKeySpec = PKCS8EncodedKeySpec(this)
+      val private = kf.generatePrivate(pkcs8EncodedKeySpec)
+      saveToFile(privateKeyFile(chainId), private.encoded)
+
+    }
+    with(rsaPublicKey.encoded){
+      val spec = X509EncodedKeySpec(this)
+      val public = kf.generatePublic(spec)
+      saveToFile(pubicKeyFile(chainId), public.encoded)
+    }
+
   }
 
   private fun pubicKeyFile(chainId: String) = toKeyAlias(chainId, KEY_ALIAS_SUFFIX_PUBLIC)
@@ -38,18 +45,18 @@ object JVMKeyStoreRsaUtils {
 
   private fun saveToFile(
     fileName: String,
-    mod: BigInteger, exp: BigInteger
+    bytes:ByteArray
   ) {
-    val oout = ObjectOutputStream(
-      BufferedOutputStream(FileOutputStream(fileName))
-    )
+    val file = File(fileName)
     try {
-      oout.writeObject(mod)
-      oout.writeObject(exp)
+      file.createNewFile();
+      val fos = FileOutputStream(file)
+      fos.write(bytes)
+      fos.flush()
+      fos.close()
     } catch (e: java.lang.Exception) {
       throw e
     } finally {
-      oout.close()
     }
   }
 
@@ -58,34 +65,27 @@ object JVMKeyStoreRsaUtils {
   }
 
   private fun readPublicKey(chainId: String): PublicKey {
-    val `in`: InputStream = FileInputStream(pubicKeyFile(chainId))
-    val oin = ObjectInputStream(BufferedInputStream(`in`))
     return try {
-      val m = oin.readObject() as BigInteger
-      val e = oin.readObject() as BigInteger
-      val keySpec = RSAPublicKeySpec(m, e)
+      val keyBytes: ByteArray =  FileInputStream(pubicKeyFile(chainId)).readBytes()
       val fact = KeyFactory.getInstance("RSA")
-      fact.generatePublic(keySpec)
+      val spec = X509EncodedKeySpec(keyBytes)
+      fact.generatePublic(spec)
     } catch (e: java.lang.Exception) {
       throw e
     } finally {
-      oin.close()
     }
   }
 
   private fun readPrivateKey(chainId: String): PrivateKey {
-    val `in`: InputStream = FileInputStream(privateKeyFile(chainId))
-    val oin = ObjectInputStream(BufferedInputStream(`in`))
     return try {
-      val m = oin.readObject() as BigInteger
-      val e = oin.readObject() as BigInteger
-      val keySpec = RSAPrivateKeySpec(m, e)
+      val keyBytes: ByteArray =  FileInputStream(privateKeyFile(chainId)).readBytes()
       val fact = KeyFactory.getInstance("RSA")
-      fact.generatePrivate(keySpec)
+      val spec = PKCS8EncodedKeySpec(keyBytes)
+      fact.generatePrivate(spec)
     } catch (e: java.lang.Exception) {
       throw e
     } finally {
-      oin.close()
+
     }
   }
 

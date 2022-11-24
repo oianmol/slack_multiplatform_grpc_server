@@ -70,38 +70,43 @@ class ChannelService(
     }
 
     override suspend fun savePublicChannel(request: SKChannel): SKChannel {
-        val authData = AUTH_CONTEXT_KEY.get()
-        val previousChannelExists = channelsDataSource.checkIfGroupExisits(request.workspaceId, request.name)
-        if (previousChannelExists) {
-            throw StatusException(Status.ALREADY_EXISTS)
+        try {
+            val authData = AUTH_CONTEXT_KEY.get()
+            val previousChannelExists = channelsDataSource.checkIfGroupExisits(request.workspaceId, request.name)
+            if (previousChannelExists) {
+                throw StatusException(Status.ALREADY_EXISTS)
+            }
+
+            val channel = request.toDBChannel()
+            val keyManager = RsaEcdsaKeyManager(channel.uuid)
+            val publicKeyChannel = keyManager.getPublicKey().encoded
+            val saved = channelsDataSource.savePublicChannel(
+                channel.copy(channelPublicKey = SKUserPublicKey(publicKeyChannel)),
+                adminId = authData.userId
+            )?.toGRPC()
+            inviteUserWithAuthData(sKInviteUserChannel {
+                this.channelId = channel.uuid
+                this.userId = authData.userId
+                this.channelPrivateKey =
+                    keyManager.getPrivateKey().encoded.encryptWithUserPublicKey(
+                        usersDataSource.getUser(
+                            authData.userId,
+                            request.workspaceId
+                        )!!.publicKey
+                    )
+            }, authData)
+            channelPNSender.sendPushNotifications(
+                channel,
+                authData.userId,
+                NotificationType.CHANNEL_CREATED
+            )
+            keyManager.rawDeleteKeyPair()
+            return saved ?: throw StatusException(Status.NOT_FOUND)
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            throw ex
         }
 
-        val channel = request.toDBChannel()
-        val keyManager = RsaEcdsaKeyManager(channel.uuid)
-        val publicKeyChannel = keyManager.getPublicKey().encoded
-        val saved = channelsDataSource.savePublicChannel(
-            channel.copy(channelPublicKey = SKUserPublicKey(publicKeyChannel)),
-            adminId = authData.userId
-        )?.toGRPC()
-
-        inviteUserWithAuthData(sKInviteUserChannel {
-            this.channelId = channel.uuid
-            this.userId = authData.userId
-            this.channelPrivateKey =
-                keyManager.getPrivateKey().encoded.encryptWithUserPublicKey(
-                    usersDataSource.getUser(
-                        authData.userId,
-                        request.workspaceId
-                    )!!.publicKey
-                )
-        }, authData)
-        channelPNSender.sendPushNotifications(
-            channel,
-            authData.userId,
-            NotificationType.CHANNEL_CREATED
-        )
-        keyManager.rawDeleteKeyPair()
-        return saved ?: throw StatusException(Status.NOT_FOUND)
     }
 
     override suspend fun saveDMChannel(request: SKDMChannel): SKDMChannel {

@@ -18,6 +18,7 @@ dependencies {
   testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.4")
   testImplementation("io.grpc:grpc-testing:1.50.2")
 
+  implementation("org.bouncycastle:bcprov-jdk15on:1.70")
   implementation("com.google.firebase:firebase-admin:9.1.1")
 
   implementation(project(":slack_generate_protos"))
