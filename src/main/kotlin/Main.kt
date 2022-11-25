@@ -22,9 +22,6 @@ const val TLS_CERT_PATH_OPTION = "tls/tls.crt"
 const val TLS_PRIVATE_KEY_PATH_OPTION = "tls/tls.key"
 
 fun main() {
-    Security.addProvider(
-        BouncyCastleProvider()
-    )
     initializeTink()
 
     initializeFCM()
