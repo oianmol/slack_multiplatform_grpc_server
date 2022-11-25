@@ -24,18 +24,12 @@ object JVMKeyStoreRsaUtils {
 
     val rsaPublicKey: RSAPublicKey = keyPair.public as RSAPublicKey
     val rsaPrivateKey: RSAPrivateKey = keyPair.private as RSAPrivateKey
-    val kf = KeyFactory.getInstance("RSA")
 
     with(rsaPrivateKey.encoded){
-      val pkcs8EncodedKeySpec = PKCS8EncodedKeySpec(this)
-      val private = kf.generatePrivate(pkcs8EncodedKeySpec)
-      saveToFile(privateKeyFile(chainId), private.encoded)
-
+      saveToFile(privateKeyFile(chainId), this)
     }
     with(rsaPublicKey.encoded){
-      val spec = X509EncodedKeySpec(this)
-      val public = kf.generatePublic(spec)
-      saveToFile(pubicKeyFile(chainId), public.encoded)
+      saveToFile(pubicKeyFile(chainId), this)
     }
 
   }
