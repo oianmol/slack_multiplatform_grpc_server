@@ -18,17 +18,13 @@ dependencies {
   testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.4")
   testImplementation("io.grpc:grpc-testing:1.50.2")
 
-  implementation("org.bouncycastle:bcprov-jdk15on:1.70")
+  implementation("org.bouncycastle:bcprov-jdk16:1.45")
   implementation("com.google.firebase:firebase-admin:9.1.1")
+  implementation("dev.baseio.slackcrypto:capillary-kmp-jvm:1.0")
 
   implementation(project(":slack_generate_protos"))
-  implementation(project(":capillary_generate_proto"))
 
   implementation("io.insert-koin:koin-core:3.2.2")
-
-  implementation("com.google.crypto.tink:tink:1.7.0")
-  implementation("com.google.crypto.tink:apps-webpush:1.7.0")
-
 
   implementation("io.grpc:grpc-netty-shaded:1.50.2")
   implementation("com.google.zxing:core:3.5.0")

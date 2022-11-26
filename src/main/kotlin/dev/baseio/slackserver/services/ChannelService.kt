@@ -1,5 +1,8 @@
 package dev.baseio.slackserver.services
 
+import dev.baseio.security.Capillary
+import dev.baseio.security.CapillaryInstances
+import dev.baseio.security.JVMKeyStoreRsaUtils
 import dev.baseio.slackdata.common.sKByteArrayElement
 import dev.baseio.slackdata.protos.*
 import dev.baseio.slackserver.communications.NotificationType
@@ -10,7 +13,6 @@ import dev.baseio.slackserver.data.models.SkChannel
 import dev.baseio.slackserver.data.models.SkChannelMember
 import dev.baseio.slackserver.data.sources.ChannelMemberDataSource
 import dev.baseio.slackserver.data.sources.UsersDataSource
-import dev.baseio.slackserver.security.*
 import dev.baseio.slackserver.services.interceptors.AUTH_CONTEXT_KEY
 import dev.baseio.slackserver.services.interceptors.AuthData
 import io.grpc.Status
@@ -78,8 +80,8 @@ class ChannelService(
             }
 
             val channel = request.toDBChannel()
-            val keyManager = RsaEcdsaKeyManager(channel.uuid)
-            val publicKeyChannel = keyManager.getPublicKey().encoded
+            val keyManager = CapillaryInstances.getInstance(channel.uuid)
+            val publicKeyChannel = keyManager.publicKey().encoded
             val saved = channelsDataSource.savePublicChannel(
                 channel.copy(channelPublicKey = SKUserPublicKey(publicKeyChannel)),
                 adminId = authData.userId
@@ -87,20 +89,20 @@ class ChannelService(
             inviteUserWithAuthData(sKInviteUserChannel {
                 this.channelId = channel.uuid
                 this.userId = authData.userId
+                val userPublicKey = usersDataSource.getUser(
+                    authData.userId,
+                    request.workspaceId
+                )!!.publicKey
                 this.channelPrivateKey =
-                    keyManager.getPrivateKey().encoded.encryptWithUserPublicKey(
-                        usersDataSource.getUser(
-                            authData.userId,
-                            request.workspaceId
-                        )!!.publicKey
-                    )
+                    keyManager.encrypt(keyManager.privateKey().encoded, userPublicKey.toPublicKey())
+                        .toSlackPublicKey()
             }, authData)
             channelPNSender.sendPushNotifications(
                 channel,
                 authData.userId,
                 NotificationType.CHANNEL_CREATED
             )
-            keyManager.rawDeleteKeyPair()
+            JVMKeyStoreRsaUtils.deleteKeyPair(keyManager.keychainId)
             return saved ?: throw StatusException(Status.NOT_FOUND)
         } catch (ex: Exception) {
             ex.printStackTrace()
@@ -115,38 +117,41 @@ class ChannelService(
         previousChannel?.let {
             return it.toGRPC()
         } ?: kotlin.run {
-            val keyManager = RsaEcdsaKeyManager(request.uuid)
-            val publicKeyChannel = keyManager.getPublicKey().encoded
+            val keyManager = CapillaryInstances.getInstance(request.uuid)
+            val publicKeyChannel = keyManager.publicKey().encoded
             val channel = dbChannel(request, publicKeyChannel)
             val savedChannel = channelsDataSource.saveDMChannel(channel)?.toGRPC()!!
             inviteUserWithAuthData(sKInviteUserChannel {
                 this.channelId = savedChannel.uuid
                 this.userId = request.senderId
+
+                val userPublicKey = usersDataSource.getUser(
+                    request.senderId,
+                    request.workspaceId
+                )!!.publicKey
                 this.channelPrivateKey =
-                    keyManager.getPrivateKey().encoded.encryptWithUserPublicKey(
-                        usersDataSource.getUser(
-                            request.senderId,
-                            request.workspaceId
-                        )!!.publicKey
-                    )
+                    keyManager.encrypt(keyManager.privateKey().encoded, userPublicKey.toPublicKey())
+                        .toSlackPublicKey()
             }, authData)
             inviteUserWithAuthData(sKInviteUserChannel {
                 this.channelId = savedChannel.uuid
                 this.userId = request.receiverId
+
+                val userPublicKey = usersDataSource.getUser(
+                    request.receiverId,
+                    request.workspaceId
+                )!!.publicKey
                 this.channelPrivateKey =
-                    keyManager.getPrivateKey().encoded.encryptWithUserPublicKey(
-                        usersDataSource.getUser(
-                            request.receiverId,
-                            request.workspaceId
-                        )!!.publicKey
-                    )
+                    keyManager.encrypt(keyManager.privateKey().encoded, userPublicKey.toPublicKey())
+                        .toSlackPublicKey()
+
             }, authData)
             channelPNSender.sendPushNotifications(
                 channel,
                 authData.userId,
                 NotificationType.DM_CHANNEL_CREATED
             )
-            keyManager.rawDeleteKeyPair()
+            JVMKeyStoreRsaUtils.deleteKeyPair(keyManager.keychainId)
             return savedChannel
         }
     }
@@ -265,15 +270,6 @@ class ChannelService(
     }
 }
 
-fun ByteArray.encryptWithUserPublicKey(publicKey: SKUserPublicKey): SlackPublicKey {
-    return HybridRsaUtils.encrypt(
-        this,
-        publicKey.toPublicKey(),
-        RsaEcdsaConstants.Padding.OAEP,
-        RsaEcdsaConstants.OAEP_PARAMETER_SPEC
-    ).toSlackPublicKey()
-}
-
 private fun ByteArray.toSlackPublicKey(): SlackPublicKey {
     return slackPublicKey {
         this.keybytes.addAll(this@toSlackPublicKey.map {
@@ -284,7 +280,7 @@ private fun ByteArray.toSlackPublicKey(): SlackPublicKey {
     }
 }
 
-fun SKUserPublicKey.toPublicKey(): PublicKey {
+fun SKUserPublicKey.toPublicKey(): dev.baseio.security.PublicKey {
     return JVMKeyStoreRsaUtils.getPublicKeyFromBytes(this.keyBytes)
 }
 

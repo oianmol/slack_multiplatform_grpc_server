@@ -1,6 +1,4 @@
 import com.google.auth.oauth2.GoogleCredentials
-import com.google.crypto.tink.aead.AeadConfig
-import com.google.crypto.tink.signature.SignatureConfig
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import dev.baseio.slackserver.data.models.SkChannel
@@ -10,20 +8,16 @@ import dev.baseio.slackserver.dataSourcesModule
 import dev.baseio.slackserver.services.*
 import dev.baseio.slackserver.services.interceptors.AuthInterceptor
 import io.grpc.ServerBuilder
-import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.qualifier.named
 import org.koin.java.KoinJavaComponent.getKoin
-import java.security.Security
 
 
 const val TLS_CERT_PATH_OPTION = "tls/tls.crt"
 const val TLS_PRIVATE_KEY_PATH_OPTION = "tls/tls.key"
 
 fun main() {
-    initializeTink()
-
     initializeFCM()
 
     initKoin()
@@ -32,7 +26,7 @@ fun main() {
     val tlsCertFile = object {}.javaClass.getResourceAsStream(TLS_CERT_PATH_OPTION)
     val tlsPrivateKeyFile = object {}.javaClass.getResourceAsStream(TLS_PRIVATE_KEY_PATH_OPTION)
 
-    ServerBuilder.forPort(17600)
+    ServerBuilder.forPort(8081)
         //.useTransportSecurity(tlsCertFile, tlsPrivateKeyFile) // TODO enable this once the kmp library supports this.
         .addService(
             AuthService(
@@ -83,9 +77,4 @@ fun initializeFCM() {
         .build()
 
     FirebaseApp.initializeApp(options)
-}
-
-fun initializeTink() {
-    com.google.crypto.tink.Config.register(SignatureConfig.LATEST);
-    AeadConfig.register()
 }
