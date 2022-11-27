@@ -76,7 +76,7 @@ fun SkUser.toGrpc(): SKUser {
         .setEmail(this.email)
         .setLocation(this.location)
         .setPublicKey(
-            SlackPublicKey.newBuilder()
+            SlackKey.newBuilder()
                 .addAllKeybytes(this.publicKey.keyBytes.map {
                     sKByteArrayElement {
                         this.byte = it.toInt()

@@ -204,7 +204,7 @@ class ChannelService(
             uuid = request.uuid.takeIf { it.isNotEmpty() } ?: UUID.randomUUID().toString()
             createdDate = System.currentTimeMillis()
             modifiedDate = System.currentTimeMillis()
-            publicKey = slackPublicKey {
+            publicKey = slackKey {
                 this.keybytes.addAll(publicKeyChannel.map {
                     sKByteArrayElement {
                         this.byte = it.toInt()
@@ -270,8 +270,8 @@ class ChannelService(
     }
 }
 
-private fun ByteArray.toSlackPublicKey(): SlackPublicKey {
-    return slackPublicKey {
+private fun ByteArray.toSlackPublicKey(): SlackKey {
+    return slackKey {
         this.keybytes.addAll(this@toSlackPublicKey.map {
             sKByteArrayElement {
                 byte = it.toInt()
@@ -297,7 +297,7 @@ private fun SKChannelMember.toDBMember(): SkChannelMember {
     }
 }
 
-private fun SlackPublicKey.toSKUserPublicKey(): SKUserPublicKey {
+private fun SlackKey.toSKUserPublicKey(): SKUserPublicKey {
     return SKUserPublicKey(this.keybytesList.map { it.byte.toByte() }.toByteArray())
 }
 
@@ -308,7 +308,7 @@ fun SkChannelMember.toGRPC(): SKChannelMember {
         this.channelId = member.channelId
         this.workspaceId = member.workspaceId
         this.memberId = member.memberId
-        this.channelPrivateKey = slackPublicKey {
+        this.channelPrivateKey = slackKey {
             this.keybytes.addAll(member.channelEncryptedPrivateKey!!.keyBytes.map {
                 sKByteArrayElement {
                     byte = it.toInt()
@@ -355,7 +355,7 @@ fun SkChannel.SkGroupChannel.toGRPC(): SKChannel {
         .setCreatedDate(this.createdDate)
         .setWorkspaceId(this.workspaceId)
         .setModifiedDate(this.modifiedDate)
-        .setPublicKey(SlackPublicKey.newBuilder().addAllKeybytes(this.publicKey.keyBytes.map {
+        .setPublicKey(SlackKey.newBuilder().addAllKeybytes(this.publicKey.keyBytes.map {
             sKByteArrayElement {
                 this.byte = it.toInt()
             }
@@ -372,7 +372,7 @@ fun SkChannel.SkDMChannel.toGRPC(): SKDMChannel {
         .setReceiverId(this.receiverId)
         .setSenderId(this.senderId)
         .setWorkspaceId(this.workspaceId)
-        .setPublicKey(SlackPublicKey.newBuilder().addAllKeybytes(this.publicKey.keyBytes.map {
+        .setPublicKey(SlackKey.newBuilder().addAllKeybytes(this.publicKey.keyBytes.map {
             sKByteArrayElement {
                 this.byte = it.toInt()
             }
