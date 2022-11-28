@@ -85,11 +85,7 @@ private fun SkMessage.toGrpc(): SKMessage {
     .setWorkspaceId(this.workspaceId)
     .setChannelId(this.channelId)
     .setSender(this.sender)
-    .addAllText(this.message.map {
-      dev.baseio.slackdata.common.sKByteArrayElement {
-        this.byte = it.toInt()
-      }
-    })
+    .setText(SKEncryptedMessage.parseFrom(this.message))
     .setIsDeleted(this.isDeleted)
     .build()
 }
@@ -99,7 +95,7 @@ private fun SKMessage.toDBMessage(uuid: String = UUID.randomUUID().toString()): 
     uuid = this.uuid.takeIf { !it.isNullOrEmpty() } ?: uuid,
     workspaceId = this.workspaceId,
     channelId,
-    textList.map { it.byte.toByte() }.toByteArray(),
+    text.toByteArray(),
     sender,
     createdDate,
     modifiedDate,
