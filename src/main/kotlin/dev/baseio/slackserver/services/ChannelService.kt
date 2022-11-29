@@ -79,37 +79,58 @@ class ChannelService(
         throw StatusException(Status.ALREADY_EXISTS)
       }
 
-      val channel = request.toDBChannel()
-      val keyManager = CapillaryInstances.getInstance(channel.uuid)
-      val publicKeyChannel = keyManager.publicKey().encoded
-      val saved = channelsDataSource.savePublicChannel(
-        channel.copy(channelPublicKey = SKUserPublicKey(publicKeyChannel)),
-        adminId = authData.userId
-      )?.toGRPC()
+      val skGroupChannel = request.toDBChannel()
+
+      val userPublicKey = skUserPublicKey(authData, request)
+      val skChannelSlackKeyPair = with(CapillaryInstances.getInstance(skGroupChannel.uuid)) {
+        val publicKeyChannel = publicKey().encoded //create the channel public key!
+        // save the channel with the public key of channel
+        val saved = channelsDataSource.savePublicChannel(
+          skGroupChannel.copy(channelPublicKey = SKUserPublicKey(publicKeyChannel)),
+          adminId = authData.userId
+        )?.toGRPC()
+
+        val channelPrivateKey =
+          encrypt(privateKey().encoded, userPublicKey.toPublicKey()).toSlackKey()
+        JVMKeyStoreRsaUtils.deleteKeyPair(keychainId)
+        Pair(saved, channelPrivateKey)
+      }
+
+      // invite the user to his channel
       inviteUserWithAuthData(sKInviteUserChannel {
-        this.channelId = channel.uuid
+        this.channelId = skGroupChannel.uuid
         this.userId = authData.userId
-        val userPublicKey = usersDataSource.getUser(
-          authData.userId,
-          request.workspaceId
-        )!!.publicKey
-        this.channelPrivateKey =
-          keyManager.encrypt(keyManager.privateKey().encoded, userPublicKey.toPublicKey())
-            .toSlackPublicKey()
+        this.channelPrivateKey = skChannelSlackKeyPair.second
       }, authData)
-      channelPNSender.sendPushNotifications(
-        channel,
-        authData.userId,
-        NotificationType.CHANNEL_CREATED
-      )
-      JVMKeyStoreRsaUtils.deleteKeyPair(keyManager.keychainId)
-      return saved ?: throw StatusException(Status.NOT_FOUND)
+
+      sendPushNotifyChannelCreated(skGroupChannel, authData)
+
+      return skChannelSlackKeyPair.first ?: throw StatusException(Status.FAILED_PRECONDITION)
     } catch (ex: Exception) {
       ex.printStackTrace()
       throw ex
     }
 
   }
+
+  private fun sendPushNotifyChannelCreated(
+    channel: SkChannel.SkGroupChannel,
+    authData: AuthData
+  ) {
+    channelPNSender.sendPushNotifications(
+      channel,
+      authData.userId,
+      NotificationType.CHANNEL_CREATED
+    )
+  }
+
+  private suspend fun skUserPublicKey(
+    authData: AuthData,
+    request: SKChannel
+  ) = usersDataSource.getUser(
+    authData.userId,
+    request.workspaceId
+  )!!.publicKey
 
   override suspend fun saveDMChannel(request: SKDMChannel): SKDMChannel {
     val authData = AUTH_CONTEXT_KEY.get()
@@ -131,7 +152,7 @@ class ChannelService(
         )!!.publicKey
         this.channelPrivateKey =
           keyManager.encrypt(keyManager.privateKey().encoded, userPublicKey.toPublicKey())
-            .toSlackPublicKey()
+            .toSlackKey()
       }, authData)
       inviteUserWithAuthData(sKInviteUserChannel {
         this.channelId = savedChannel.uuid
@@ -143,7 +164,7 @@ class ChannelService(
         )!!.publicKey
         this.channelPrivateKey =
           keyManager.encrypt(keyManager.privateKey().encoded, userPublicKey.toPublicKey())
-            .toSlackPublicKey()
+            .toSlackKey()
 
       }, authData)
       channelPNSender.sendPushNotifications(
@@ -270,7 +291,7 @@ class ChannelService(
   }
 }
 
-private fun EncryptedData.toSlackPublicKey(): SlackKey {
+private fun EncryptedData.toSlackKey(): SKEncryptedMessage {
   val encrypted = SKEncryptedMessage.newBuilder()
     .addAllFirst(this.first.map {
       SKByteArrayElement.newBuilder()
@@ -283,13 +304,7 @@ private fun EncryptedData.toSlackPublicKey(): SlackKey {
         .build()
     })
     .build()
-  return slackKey {
-    this.keybytes.addAll(encrypted.toByteArray().map {
-      sKByteArrayElement {
-        byte = it.toInt()
-      }
-    })
-  }
+  return encrypted
 }
 
 fun SKUserPublicKey.toPublicKey(): dev.baseio.security.PublicKey {
@@ -301,7 +316,7 @@ private fun SKChannelMember.toDBMember(): SkChannelMember {
     this.workspaceId,
     this.channelId,
     this.memberId,
-    this.channelPrivateKey.toSKUserPublicKey()
+    this.channelPrivateKey
   ).apply {
     this@toDBMember.uuid?.takeIf { it.isNotEmpty() }?.let {
       this.uuid = this@toDBMember.uuid
@@ -320,13 +335,7 @@ fun SkChannelMember.toGRPC(): SKChannelMember {
     this.channelId = member.channelId
     this.workspaceId = member.workspaceId
     this.memberId = member.memberId
-    this.channelPrivateKey = slackKey {
-      this.keybytes.addAll(member.channelEncryptedPrivateKey!!.keyBytes.map {
-        sKByteArrayElement {
-          byte = it.toInt()
-        }
-      })
-    }
+    this.channelPrivateKey = member.channelEncryptedPrivateKey!!
   }
 }
 
@@ -344,11 +353,9 @@ fun SKDMChannel.toDBChannel(
   )
 }
 
-fun SKChannel.toDBChannel(
-  channelId: String = UUID.randomUUID().toString()
-): SkChannel.SkGroupChannel {
+fun SKChannel.toDBChannel(): SkChannel.SkGroupChannel {
   return SkChannel.SkGroupChannel(
-    this.uuid.takeIf { !it.isNullOrEmpty() } ?: channelId,
+    this.uuid.takeIf { !it.isNullOrEmpty() } ?: UUID.randomUUID().toString(),
     this.workspaceId,
     this.name,
     createdDate,

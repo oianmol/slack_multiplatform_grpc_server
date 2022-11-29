@@ -1,5 +1,6 @@
 package dev.baseio.slackserver.data.models
 
+import dev.baseio.slackdata.protos.SKEncryptedMessage
 import java.util.*
 
 sealed class SkChannel(
@@ -53,7 +54,7 @@ data class SkChannelMember(
     val workspaceId: String,
     val channelId: String,
     val memberId: String,
-    val channelEncryptedPrivateKey: SKUserPublicKey? = null
+    val channelEncryptedPrivateKey: SKEncryptedMessage? = null
 ) : IDataMap {
     var uuid: String = UUID.randomUUID().toString()
     override fun provideMap(): Map<String, String> {
