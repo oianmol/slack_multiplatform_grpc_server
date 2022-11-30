@@ -3,7 +3,6 @@ package dev.baseio.slackserver.services
 import dev.baseio.security.CapillaryInstances
 import dev.baseio.security.EncryptedData
 import dev.baseio.security.JVMKeyStoreRsaUtils
-import dev.baseio.slackdata.common.SKByteArrayElement
 import dev.baseio.slackdata.common.sKByteArrayElement
 import dev.baseio.slackdata.protos.*
 import dev.baseio.slackserver.communications.NotificationType
@@ -294,19 +293,10 @@ class ChannelService(
 }
 
 private fun EncryptedData.toSlackKey(): SKEncryptedMessage {
-  val encrypted = SKEncryptedMessage.newBuilder()
-    .addAllFirst(this.first.map {
-      SKByteArrayElement.newBuilder()
-        .setByte(it.toInt())
-        .build()
-    })
-    .addAllSecond(this.second.map {
-      SKByteArrayElement.newBuilder()
-        .setByte(it.toInt())
-        .build()
-    })
+  return SKEncryptedMessage.newBuilder()
+    .setFirst(String(first))
+    .setSecond(String(second))
     .build()
-  return encrypted
 }
 
 fun SKUserPublicKey.toPublicKey(): dev.baseio.security.PublicKey {
@@ -328,8 +318,8 @@ private fun SKChannelMember.toDBMember(): SkChannelMember {
 
 fun SKEncryptedMessage.toSKEncryptedMessage(): dev.baseio.slackserver.data.models.SKEncryptedMessage {
   return dev.baseio.slackserver.data.models.SKEncryptedMessage(
-    this.firstList.map { it.byte.toByte() }.toByteArray(),
-    this.secondList.map { it.byte.toByte() }.toByteArray()
+    this.first,
+    this.second
   )
 }
 
@@ -346,8 +336,8 @@ fun SkChannelMember.toGRPC(): SKChannelMember {
     this.workspaceId = member.workspaceId
     this.memberId = member.memberId
     this.channelPrivateKey = sKEncryptedMessage {
-      this.first.addAll(member.channelEncryptedPrivateKey!!.first.map { sKByteArrayElement { byte = it.toInt() } })
-      this.second.addAll(member.channelEncryptedPrivateKey.second.map { sKByteArrayElement { byte = it.toInt() } })
+      this.first = member.channelEncryptedPrivateKey!!.first
+      this.second = member.channelEncryptedPrivateKey.second
     }
   }
 }
