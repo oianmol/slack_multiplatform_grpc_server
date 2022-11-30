@@ -76,7 +76,9 @@ class ChannelService(
       val authData = AUTH_CONTEXT_KEY.get()
       val previousChannelExists = channelsDataSource.checkIfGroupExisits(request.workspaceId, request.name)
       if (previousChannelExists) {
-        throw StatusException(Status.ALREADY_EXISTS)
+        val groupChannel =
+          channelsDataSource.getChannelByName(request.name, request.workspaceId) as SkChannel.SkGroupChannel
+        return groupChannel.toGRPC()
       }
 
       val skGroupChannel = request.toDBChannel()
@@ -316,13 +318,21 @@ private fun SKChannelMember.toDBMember(): SkChannelMember {
     this.workspaceId,
     this.channelId,
     this.memberId,
-    this.channelPrivateKey
+    this.channelPrivateKey.toSKEncryptedMessage()
   ).apply {
     this@toDBMember.uuid?.takeIf { it.isNotEmpty() }?.let {
       this.uuid = this@toDBMember.uuid
     }
   }
 }
+
+fun SKEncryptedMessage.toSKEncryptedMessage(): dev.baseio.slackserver.data.models.SKEncryptedMessage {
+  return dev.baseio.slackserver.data.models.SKEncryptedMessage(
+    this.firstList.map { it.byte.toByte() }.toByteArray(),
+    this.secondList.map { it.byte.toByte() }.toByteArray()
+  )
+}
+
 
 private fun SlackKey.toSKUserPublicKey(): SKUserPublicKey {
   return SKUserPublicKey(this.keybytesList.map { it.byte.toByte() }.toByteArray())
@@ -335,7 +345,10 @@ fun SkChannelMember.toGRPC(): SKChannelMember {
     this.channelId = member.channelId
     this.workspaceId = member.workspaceId
     this.memberId = member.memberId
-    this.channelPrivateKey = member.channelEncryptedPrivateKey!!
+    this.channelPrivateKey = sKEncryptedMessage {
+      this.first.addAll(member.channelEncryptedPrivateKey!!.first.map { sKByteArrayElement { byte = it.toInt() } })
+      this.second.addAll(member.channelEncryptedPrivateKey.second.map { sKByteArrayElement { byte = it.toInt() } })
+    }
   }
 }
 

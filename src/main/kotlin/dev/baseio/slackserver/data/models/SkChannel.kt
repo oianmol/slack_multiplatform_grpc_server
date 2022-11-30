@@ -1,6 +1,5 @@
 package dev.baseio.slackserver.data.models
 
-import dev.baseio.slackdata.protos.SKEncryptedMessage
 import java.util.*
 
 sealed class SkChannel(
