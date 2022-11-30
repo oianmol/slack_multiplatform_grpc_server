@@ -294,8 +294,8 @@ class ChannelService(
 
 private fun EncryptedData.toSlackKey(): SKEncryptedMessage {
   return SKEncryptedMessage.newBuilder()
-    .setFirst(String(first))
-    .setSecond(String(second))
+    .setFirst(first)
+    .setSecond(second)
     .build()
 }
 
