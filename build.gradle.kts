@@ -12,13 +12,13 @@ repositories {
 }
 
 dependencies {
-
+  implementation("javax.mail:mail:1.5.0-b01")
   testImplementation(kotlin("test"))
   testImplementation("app.cash.turbine:turbine:0.12.1")
   testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.4")
-  testImplementation("io.grpc:grpc-testing:1.50.2")
+  testImplementation("io.grpc:grpc-testing:1.51.0")
 
-  implementation("org.bouncycastle:bcprov-jdk16:1.45")
+  implementation("org.bouncycastle:bcprov-jdk16:1.46")
   implementation("com.google.firebase:firebase-admin:9.1.1")
   implementation("dev.baseio.slackcrypto:capillary-kmp-jvm:1.0")
 
