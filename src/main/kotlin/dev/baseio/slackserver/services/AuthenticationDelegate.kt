@@ -23,7 +23,7 @@ class AuthenticationDelegateImpl(
             existingUser?.let {
                 val authResult = skAuthResult(it)
                 authDataSource.sendEmailLink(request.email, workspaceId)?.let {
-                    SlackEmailHelper.sendEmail(request.email, "slackclone://open/?token=${authResult.token}")
+                    SlackEmailHelper.sendEmail(request.email, "slackclone://open/?token=${authResult.token}&workspaceId=$workspaceId")
                 } ?: kotlin.run {
                     throw StatusException(Status.UNAUTHENTICATED)
                 }
@@ -33,7 +33,7 @@ class AuthenticationDelegateImpl(
                     request.user.toDBUser().copy(workspaceId = workspaceId, email = request.email)
                 )
                 val authResult = skAuthResult(generatedUser)
-                SlackEmailHelper.sendEmail(request.email, "slackclone://open/?token=${authResult.token}")
+                SlackEmailHelper.sendEmail(request.email, "slackclone://open/?token=${authResult.token}&workspaceId=$workspaceId")
             }
         }.exceptionOrNull()?.printStackTrace()
     }
