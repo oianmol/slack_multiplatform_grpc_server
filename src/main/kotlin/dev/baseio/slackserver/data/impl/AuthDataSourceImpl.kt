@@ -11,7 +11,7 @@ import org.litote.kmongo.reactivestreams.findOne
 import java.util.*
 
 class AuthDataSourceImpl(private val slackCloneDB: CoroutineDatabase) : AuthDataSource {
-    override suspend fun login(email: String, password: String, workspaceId: String): SkUser? {
+    override suspend fun sendEmailLink(email: String, workspaceId: String): SkUser? {
         val user = slackCloneDB.getCollection<SkUser>().collection
             .findOne(
                 SkUser::email eq email,
@@ -20,23 +20,15 @@ class AuthDataSourceImpl(private val slackCloneDB: CoroutineDatabase) : AuthData
         user.awaitFirstOrNull()?.let { user ->
             slackCloneDB.getCollection<SkAuthUser>().collection
                 .findOne(SkAuthUser::userId eq user.uuid)
-                .awaitFirstOrNull()?.let {
-                    val result: BCrypt.Result = BCrypt.verifyer().verify(password.toCharArray(), it.password)
-                    if (result.verified) {
-                        return user
-                    }
-                }
+                .awaitFirstOrNull()
         }
         return null
     }
 
-    override suspend fun register(email: String, password: String, user: SkUser): SkUser? {
+    override suspend fun register(email: String, user: SkUser): SkUser? {
         //save the user details
         if (email.trim().isEmpty()) {
             throw Exception("email cannot be empty!")
-        }
-        if (password.trim().isEmpty()) {
-            throw Exception("password cannot be empty!")
         }
         if (user.uuid.trim().isEmpty()) {
             throw Exception("user uuid cannot be empty!")
@@ -45,10 +37,9 @@ class AuthDataSourceImpl(private val slackCloneDB: CoroutineDatabase) : AuthData
             user
         ).awaitFirstOrNull()
         // save the auth
-        val bcryptHashString: String = BCrypt.withDefaults().hashToString(12, password.toCharArray())
 
         slackCloneDB.getCollection<SkAuthUser>().collection.insertOne(
-            SkAuthUser(UUID.randomUUID().toString(), user.uuid, bcryptHashString)
+            SkAuthUser(UUID.randomUUID().toString(), user.uuid)
         ).awaitFirstOrNull()
 
         return slackCloneDB.getCollection<SkUser>().collection.findOne(SkUser::uuid eq user.uuid).awaitFirstOrNull()

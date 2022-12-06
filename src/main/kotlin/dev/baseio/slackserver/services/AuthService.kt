@@ -31,18 +31,6 @@ class AuthService(
         pushTokenDataSource.savePushToken(request.toSkUserPushToken())
         return empty { }
     }
-
-    override suspend fun changePassword(request: SKAuthUser): Empty {
-        return super.changePassword(request)
-    }
-
-    override suspend fun forgotPassword(request: SKAuthUser): SKUser {
-        return super.forgotPassword(request)
-    }
-
-    override suspend fun resetPassword(request: SKAuthUser): SKUser {
-        return super.resetPassword(request)
-    }
 }
 
 private fun SKPushToken.toSkUserPushToken(): SKUserPushToken {
