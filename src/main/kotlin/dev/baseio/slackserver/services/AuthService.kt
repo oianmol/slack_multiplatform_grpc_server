@@ -5,7 +5,6 @@ import dev.baseio.slackdata.common.Empty
 import dev.baseio.slackdata.common.empty
 import dev.baseio.slackdata.protos.*
 import dev.baseio.slackserver.data.models.SKUserPushToken
-import dev.baseio.slackserver.data.sources.AuthDataSource
 import dev.baseio.slackserver.data.models.SkUser
 import dev.baseio.slackserver.data.sources.UserPushTokenDataSource
 import dev.baseio.slackserver.services.interceptors.*
@@ -42,12 +41,15 @@ private fun SKPushToken.toSkUserPushToken(): SKUserPushToken {
     )
 }
 
-fun jwtTokenFiveDays(generatedUser: SkUser?, key: Key): String? = Jwts.builder()
+fun jwtTokenForUser(
+    generatedUser: SkUser?,
+    key: Key, addTime: Long = TimeUnit.DAYS.toMillis(5)
+): String? = Jwts.builder()
     .setClaims(hashMapOf<String, String?>().apply {
         put(USER_ID, generatedUser?.uuid)
         put(WORKSPACE_ID, generatedUser?.workspaceId)
     })
-    .setExpiration(Date.from(Instant.now().plusMillis(TimeUnit.DAYS.toMillis(5))))// valid for 5 days
+    .setExpiration(Date.from(Instant.now().plusMillis(addTime)))// valid for 5 days
     .signWith(key)
     .compact()
 
@@ -55,8 +57,8 @@ fun skAuthResult(generatedUser: SkUser?): SKAuthResult {
     val keyBytes =
         Decoders.BASE64.decode(JWT_SIGNING_KEY)// TODO move this to env variables
     val key: Key = Keys.hmacShaKeyFor(keyBytes)
-    val jws = jwtTokenFiveDays(generatedUser, key)
+    val jws = jwtTokenForUser(generatedUser, key, TimeUnit.MINUTES.toMillis(30))
     return SKAuthResult.newBuilder()
-        .setToken(jws) //no refresh token for now
+        .setToken(jws)
         .build()
 }

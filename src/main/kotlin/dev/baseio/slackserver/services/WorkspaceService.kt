@@ -74,16 +74,17 @@ class WorkspaceService(
             .build()
     }
 
-    override suspend fun letMeIn(request: SKCreateWorkspaceRequest): SKAuthResult {
+    override suspend fun letMeIn(request: SKCreateWorkspaceRequest): Empty {
         workspaceDataSource.findWorkspaceForName(request.workspace.name)?.let {
             //if workspace exists then authenticateUser!
-            return processRequestForEmail(request.user, workspaceId = it.uuid)
+            processRequestForEmail(request.user, workspaceId = it.uuid)
         } ?: run {
             val savedWorkspace = workspaceDataSource
                 .saveWorkspace(request.workspace.toDBWorkspace())
                 ?.toGRPC() ?: throw StatusException(Status.ABORTED)
-            return processRequestForEmail(request.user, workspaceId = savedWorkspace.uuid)
+            processRequestForEmail(request.user, workspaceId = savedWorkspace.uuid)
         }
+        return Empty.getDefaultInstance()
     }
 
     override suspend fun getWorkspaces(request: Empty): SKWorkspaces {
