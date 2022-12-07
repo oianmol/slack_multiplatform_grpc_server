@@ -1,6 +1,5 @@
 package dev.baseio.slackserver.services
 
-import dev.baseio.slackdata.protos.SKAuthResult
 import dev.baseio.slackdata.protos.SKAuthUser
 import dev.baseio.slackserver.communications.SlackEmailHelper
 import dev.baseio.slackserver.data.sources.AuthDataSource
@@ -22,11 +21,7 @@ class AuthenticationDelegateImpl(
             val existingUser = usersDataSource.getUserWithEmailId(emailId = request.email, workspaceId = workspaceId)
             existingUser?.let {
                 val authResult = skAuthResult(it)
-                authDataSource.sendEmailLink(request.email, workspaceId)?.let {
-                    SlackEmailHelper.sendEmail(request.email, "slackclone://open/?token=${authResult.token}&workspaceId=$workspaceId")
-                } ?: kotlin.run {
-                    throw StatusException(Status.UNAUTHENTICATED)
-                }
+                SlackEmailHelper.sendEmail(request.email, "slackclone://open/?token=${authResult.token}&workspaceId=$workspaceId")
             } ?: run {
                 val generatedUser = authDataSource.register(
                     request.email,

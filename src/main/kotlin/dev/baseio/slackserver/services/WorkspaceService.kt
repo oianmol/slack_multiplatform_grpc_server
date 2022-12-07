@@ -89,12 +89,8 @@ class WorkspaceService(
 
     override suspend fun getWorkspaces(request: Empty): SKWorkspaces {
         val authData = AUTH_CONTEXT_KEY.get()
-        val workspaces = mutableListOf<SKWorkspace>()
-        workspaceDataSource.getWorkspace(authData.workspaceId)?.let {
-            workspaces.add(it.toGRPC())
-        }
         return SKWorkspaces.newBuilder()
-            .addAllWorkspaces(workspaces)
+            .addWorkspaces(workspaceDataSource.getWorkspace(authData.workspaceId)?.toGRPC())
             .build()
     }
 }

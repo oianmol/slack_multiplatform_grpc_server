@@ -70,6 +70,7 @@ fun emailTemplate(toEmail: String, link: String) = "<html>\n" +
         "                            the button below to <span class=\"il\">confirm</span>:</p>\n" +
         "                        <table style=\"width:100%\">\n" +
         "                            <tbody>\n" +
+        "<a href=\"$link\">Click here!</a>"+
         "                                <tr style=\"width:100%\">\n" +
         "                                    <td style=\"width:100%\"><span\n" +
         "                                            style=\"display:inline-block;border-radius:4px;background-color:#611f69;width:100%;text-align:center\"\n" +

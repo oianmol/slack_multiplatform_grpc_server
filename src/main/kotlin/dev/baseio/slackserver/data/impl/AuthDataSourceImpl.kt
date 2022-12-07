@@ -1,6 +1,5 @@
 package dev.baseio.slackserver.data.impl
 
-import at.favre.lib.crypto.bcrypt.BCrypt
 import dev.baseio.slackserver.data.sources.AuthDataSource
 import dev.baseio.slackserver.data.models.SkAuthUser
 import dev.baseio.slackserver.data.models.SkUser
@@ -11,7 +10,7 @@ import org.litote.kmongo.reactivestreams.findOne
 import java.util.*
 
 class AuthDataSourceImpl(private val slackCloneDB: CoroutineDatabase) : AuthDataSource {
-    override suspend fun sendEmailLink(email: String, workspaceId: String): SkUser? {
+    override suspend fun findUser(email: String, workspaceId: String): SkUser? {
         val user = slackCloneDB.getCollection<SkUser>().collection
             .findOne(
                 SkUser::email eq email,

@@ -27,15 +27,16 @@ class AuthService(
     AuthServiceGrpcKt.AuthServiceCoroutineImplBase(coroutineContext), AuthenticationDelegate by authenticationDelegate {
 
     override suspend fun savePushToken(request: SKPushToken): Empty {
-        pushTokenDataSource.savePushToken(request.toSkUserPushToken())
+        val authData = AUTH_CONTEXT_KEY.get()
+        pushTokenDataSource.savePushToken(request.toSkUserPushToken(authData.userId))
         return empty { }
     }
 }
 
-private fun SKPushToken.toSkUserPushToken(): SKUserPushToken {
+private fun SKPushToken.toSkUserPushToken(userId: String): SKUserPushToken {
     return SKUserPushToken(
         uuid = UUID.randomUUID().toString(),
-        userId = this.userId,
+        userId = userId,
         platform = this.platform,
         token = this.token
     )
@@ -43,7 +44,7 @@ private fun SKPushToken.toSkUserPushToken(): SKUserPushToken {
 
 fun jwtTokenForUser(
     generatedUser: SkUser?,
-    key: Key, addTime: Long = TimeUnit.DAYS.toMillis(5)
+    key: Key, addTime: Long = TimeUnit.DAYS.toMillis(365)
 ): String? = Jwts.builder()
     .setClaims(hashMapOf<String, String?>().apply {
         put(USER_ID, generatedUser?.uuid)
@@ -57,7 +58,7 @@ fun skAuthResult(generatedUser: SkUser?): SKAuthResult {
     val keyBytes =
         Decoders.BASE64.decode(JWT_SIGNING_KEY)// TODO move this to env variables
     val key: Key = Keys.hmacShaKeyFor(keyBytes)
-    val jws = jwtTokenForUser(generatedUser, key, TimeUnit.MINUTES.toMillis(30))
+    val jws = jwtTokenForUser(generatedUser, key, TimeUnit.DAYS.toMillis(365))
     return SKAuthResult.newBuilder()
         .setToken(jws)
         .build()
