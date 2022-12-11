@@ -20,7 +20,7 @@ dependencies {
 
   implementation("org.bouncycastle:bcprov-jdk16:1.46")
   implementation("com.google.firebase:firebase-admin:9.1.1")
-  implementation("dev.baseio.slackcrypto:capillary-kmp-jvm:1.0")
+  implementation("dev.baseio.slackcrypto:encryptionlib-jvm:1.0")
 
   implementation(project(":slack_generate_protos"))
 
